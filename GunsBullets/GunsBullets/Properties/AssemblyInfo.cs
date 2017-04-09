@@ -7,10 +7,10 @@ using System.Runtime.InteropServices;
 // associated with an assembly.
 [assembly: AssemblyTitle("GunsBullets")]
 [assembly: AssemblyProduct("GunsBullets")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyCopyright("Copyright ©  2017")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyDescription("Projekt na PR!")]
+[assembly: AssemblyCompany("The Best PR Project Team")]
+[assembly: AssemblyCopyright("Nope.")]
+[assembly: AssemblyTrademark("Nope either.")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
