@@ -20,6 +20,7 @@ namespace GunsBullets {
         private List<Bullet> bullets;
         private int _fireIter;
         private Map map;
+        private bool ifpressreload;
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
@@ -35,6 +36,7 @@ namespace GunsBullets {
         protected override void Initialize() {
             players = new List<Player>();
             bullets = new List<Bullet>();
+            ifpressreload = false;
             _fireIter = 0;
 
             IsMouseVisible = true;
@@ -59,8 +61,8 @@ namespace GunsBullets {
         /// </summary>
         protected override void UnloadContent() {
             spriteBatch.Dispose();
+            players.Clear();
             bullets.Clear();
-            Dispose();
         }
 
         /// <summary>
@@ -73,7 +75,13 @@ namespace GunsBullets {
 
             foreach (var player in players) {
                 player.UpdatePlayer(ref gdm, ref bullets, map.WallPositions, map.WallTexture);
-                
+                if (player.ifReloadPosition() && Keyboard.GetState().IsKeyDown(Keys.R) && !ifpressreload) {
+                    ifpressreload = true;
+                    player.AmmoReload(Content);
+                }
+                if (player.ifReloadPosition() && Keyboard.GetState().IsKeyUp(Keys.R) && ifpressreload)
+                    ifpressreload = false;
+
                 if (player.ContinuousFire) {
                     if (_fireIter == Config.FireRate) {
                         var bullet = new Bullet(Content, player.SpritePosition, player.Rotation,
@@ -116,7 +124,6 @@ namespace GunsBullets {
                 foreach (var player in players) player.DrawPlayer(ref spriteBatch);
                 foreach (var bullet in bullets) bullet.DrawBullet(ref spriteBatch);
             } spriteBatch.End();
-            
             base.Draw(gameTime);
         }
     }

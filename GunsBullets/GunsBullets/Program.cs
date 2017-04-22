@@ -3,8 +3,13 @@ using System;
 namespace GunsBullets {
     static class Program {
         static void Main(string[] args) {
-            using (MainGame game = new MainGame()) {
-                game.Run();
+            try {
+                using (MainGame game = new MainGame()) {
+                    game.Run();
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e.Message);
             }
         }
     }

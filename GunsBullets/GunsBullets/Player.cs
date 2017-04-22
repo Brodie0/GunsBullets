@@ -30,7 +30,7 @@ namespace GunsBullets {
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
         public bool DestroyMe => _destroyMe;
-        public void DecreaseAmmo() { _ammoAmount--; }
+        public void DecreaseAmmo() { _ammoAmount--; Console.WriteLine(_ammoAmount); }
 
         public Player(ContentManager content) {
             _playerTexture = content.Load<Texture2D>(Config.PlayerTexture);
@@ -57,6 +57,18 @@ namespace GunsBullets {
             spriteBatch.Draw(_playerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
+        public void AmmoReload(ContentManager content) {
+            _ammoAmount = Config.AmmoAmount;
+            var sound = content.Load<SoundEffect>(Config.AmmoReloadSound);
+            sound.Play();
+        }
+
+        public bool ifReloadPosition() {
+            if (_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
+               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height)
+                return true;
+            return false;
+        }
 
         private void UpdateKeyboard(ref GraphicsDeviceManager graphics, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
             KeyboardState newKeyboardState = Keyboard.GetState();

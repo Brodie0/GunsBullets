@@ -11,12 +11,14 @@ namespace GunsBullets {
         private readonly Texture2D _bulletTexture;
         private readonly Vector2 _origin;
         private Vector2 _spritePosition;
+        private Vector2 _spritePositionPrev;
         private Vector2 _spriteSpeed;
-        private bool _destroyMe;
+        //private bool _destroyMe;
         private readonly SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
-        public bool DestroyMe { get { return _destroyMe; } set { _destroyMe = value; } }
+        //public bool DestroyMe { get { return _destroyMe; } set { _destroyMe = value; } }
+        public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
 
@@ -27,9 +29,10 @@ namespace GunsBullets {
             _origin = new Vector2(_bulletTexture.Width / 2.0f, _bulletTexture.Height / 2.0f);
             _spritePosition = new Vector2(Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Cos(playerRotation) + playerPosition.X + playerOrigin.X),
                 Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Sin(playerRotation) + playerPosition.Y + playerOrigin.Y));
+            _spritePositionPrev = _spritePosition;
             float distance = Convert.ToSingle(Math.Sqrt(Math.Pow(mouseState.X - _spritePosition.X, 2.0) + Math.Pow(mouseState.Y - _spritePosition.Y, 2.0)));
             _spriteSpeed = new Vector2((mouseState.X - _spritePosition.X) * Config.BulletSpeed / distance, (mouseState.Y - _spritePosition.Y) * Config.BulletSpeed / distance);
-            _destroyMe = false;
+            DestroyMe = false;
             var sound = content.Load<SoundEffect>(Config.BulletSoundEffect);
             sound.Play();
 
@@ -51,21 +54,24 @@ namespace GunsBullets {
             var maxY = graphics.GraphicsDevice.Viewport.Height - _bulletTexture.Height;
             const int minY = 0;
 
+            //implementacja rykoszetu od murow
             foreach (var wallPosition in wallPositions) {
 
                 if (!(wallPosition.X > _spritePosition.X + _bulletTexture.Width || _spritePosition.X > wallPosition.X + wallTexture.Width ||
                     wallPosition.Y > _spritePosition.Y + _bulletTexture.Height || _spritePosition.Y > wallPosition.Y + wallTexture.Height)) {
-                    _destroyMe = true;
-                    //przykladowa implementacja rykoszetu od scian
-                    /*if((_spritePosition.X > wallPosition.X && _spritePosition.X < wallPosition.X+wallTexture.Width) ||
-                        (_spritePosition.X + _bulletTexture.Width > wallPosition.X && _spritePosition.X + _bulletTexture.Width < wallPosition.X + wallTexture.Width))                     
-                        RicochetOrDestruction(false);
-                    else if((_spritePosition.Y > wallPosition.Y && _spritePosition.Y < wallPosition.Y + wallTexture.Height)||
-                        (_spritePosition.Y + _bulletTexture.Height > wallPosition.Y && _spritePosition.Y + _bulletTexture.Height < wallPosition.Y + wallTexture.Height))
-                        RicochetOrDestruction(true);*/
+                    if (((_spritePosition.X > wallPosition.X && _spritePosition.X < wallPosition.X + wallTexture.Width) &&
+                        (_spritePosition.Y > wallPosition.Y && _spritePosition.Y < wallPosition.Y + wallTexture.Height)) ||
+                        ((_spritePosition.X + _bulletTexture.Width > wallPosition.X && _spritePosition.X + _bulletTexture.Width < wallPosition.X + wallTexture.Width) &&
+                        (_spritePosition.Y + _bulletTexture.Height > wallPosition.Y && _spritePosition.Y + _bulletTexture.Height < wallPosition.Y + wallTexture.Height))) {
+                            if(_spritePositionPrev.X <= wallPosition.X || _spritePositionPrev.X >= wallPosition.X + wallTexture.Width)
+                                RicochetOrDestruction(true, (int)_spritePositionPrev.X);
+                        if (_spritePositionPrev.Y <= wallPosition.Y || _spritePositionPrev.Y >= wallPosition.Y + wallTexture.Height)
+                            RicochetOrDestruction(false, (int)_spritePositionPrev.Y);
+                    }                 
                 }
             }
 
+            //implementacja rykoszetu od scian mapy
             if (_spritePosition.Y < minY)
                 RicochetOrDestruction(false, minY);
             else if (_spritePosition.Y > maxY)
@@ -75,6 +81,7 @@ namespace GunsBullets {
             else if (_spritePosition.X > maxX)
                 RicochetOrDestruction(true, maxX);
 
+            _spritePositionPrev = _spritePosition;
         }
 
         public void DrawBullet(ref SpriteBatch spriteBatch) {
@@ -96,7 +103,7 @@ namespace GunsBullets {
                 }
                 _ricochetSounds[_randGenerator.Next(Config.RicochetesSoundsAmount)].Play();
             } else {
-                _destroyMe = true;
+                DestroyMe = true;
             }
         }
     }
