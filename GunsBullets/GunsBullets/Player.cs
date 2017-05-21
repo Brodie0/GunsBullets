@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -46,9 +47,9 @@ namespace GunsBullets {
             _deathsAmount = 0;
         }
 
-        public void UpdatePlayer(ref GraphicsDeviceManager graphics, ref List<Bullet> bullets, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
-            UpdateKeyboard(ref graphics, wallPositions, wallTexture);
-            UpdateMouse();
+        public void UpdatePlayer(ref GraphicsDeviceManager graphics, ref Map map, ref List<Bullet> bullets, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
+            UpdateKeyboard(ref graphics, ref map, wallPositions, wallTexture);
+            UpdateMouse(ref graphics);
             UpdateCollision(bullets);
         }
 
@@ -64,13 +65,19 @@ namespace GunsBullets {
         }
 
         public bool ifReloadPosition() {
-            if (_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
-               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height)
+            if ((_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
+               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height) ||
+               (_spritePosition.X + _origin.X >= 28*Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 29 &&
+               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height) ||
+               (_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
+               _spritePosition.Y + _origin.Y >= 20* Config.AmmoPosition.Height && _spritePosition.Y + _origin.Y <= 21*Config.AmmoPosition.Height) ||
+               (_spritePosition.X + _origin.X >= 28*Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 29 &&
+               _spritePosition.Y + _origin.Y >= 20* Config.AmmoPosition.Height && _spritePosition.Y + _origin.Y <= 21*Config.AmmoPosition.Height))
                 return true;
             return false;
         }
 
-        private void UpdateKeyboard(ref GraphicsDeviceManager graphics, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
+        private void UpdateKeyboard(ref GraphicsDeviceManager graphics, ref Map map,  IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
             KeyboardState newKeyboardState = Keyboard.GetState();
             Vector2 oldPosition = _spritePosition;
             //interface features
@@ -95,9 +102,9 @@ namespace GunsBullets {
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
                 _spriteSpeed.X = 0.0f;
             _spritePosition += _spriteSpeed;
-            var maxX = graphics.GraphicsDevice.Viewport.Width - _playerTexture.Width;
+            var maxX = map._mapTexture.Width - _playerTexture.Width;
             const int minX = 0;
-            var maxY = graphics.GraphicsDevice.Viewport.Height - _playerTexture.Height;
+            var maxY = map._mapTexture.Height - _playerTexture.Height;
             const int minY = 0;
 
             // Check for collision.
@@ -124,19 +131,22 @@ namespace GunsBullets {
         }
 
 
-        private void UpdateMouse() {
+        private void UpdateMouse(ref GraphicsDeviceManager graphics) {
             var newMouseState = Mouse.GetState();
+            var newX = newMouseState.X + _spritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
+            var newY = newMouseState.Y + _spritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
+
 
             //rotation
-            var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(_spritePosition.X - newMouseState.X) /
-                (Math.Sqrt(Math.Pow(_spritePosition.X - newMouseState.X, 2.0) + Math.Pow(_spritePosition.Y - newMouseState.Y, 2.0)))));
-            if (newMouseState.X > _spritePosition.X && newMouseState.Y < _spritePosition.Y)
+            var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(_spritePosition.X - newX) /
+                (Math.Sqrt(Math.Pow(_spritePosition.X - newX, 2.0) + Math.Pow(_spritePosition.Y - newY, 2.0)))));
+            if (newX > _spritePosition.X && newY < _spritePosition.Y)
                 _rotation = rotationTemp;
-            else if (newMouseState.X > _spritePosition.X && newMouseState.Y > _spritePosition.Y)
+            else if (newX > _spritePosition.X && newY > _spritePosition.Y)
                 _rotation = Convert.ToSingle(Math.PI) - rotationTemp;
-            else if (newMouseState.X < _spritePosition.X && newMouseState.Y > _spritePosition.Y)
+            else if (newX < _spritePosition.X && newY > _spritePosition.Y)
                 _rotation = Convert.ToSingle(2 * Math.PI) - (Convert.ToSingle(Math.PI) - rotationTemp);
-            else if (newMouseState.X < _spritePosition.X && newMouseState.Y < _spritePosition.Y)
+            else if (newX < _spritePosition.X && newY < _spritePosition.Y)
                 _rotation = Convert.ToSingle(2 * Math.PI) - rotationTemp;
 
             //fire
@@ -171,6 +181,9 @@ namespace GunsBullets {
         private void OnHitReact() {
             _deathScream.Play();
             _deathsAmount++;
+            Thread.Sleep(1000);
+            _spritePosition = Vector2.Zero;
+            _ammoAmount = Config.AmmoAmount;
             //_destroyMe = true;
             Console.WriteLine("Deaths: " + _deathsAmount);
         }

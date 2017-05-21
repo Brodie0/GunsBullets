@@ -17,12 +17,13 @@ namespace GunsBullets {
         public static string AmmoReloadSound = "gunreload";
         public static int RicochetesSoundsAmount = 2;
         public static string Ricochet1 = "ricochet1";
+        public static string WallPlacement = "mapa.txt";
         public static string Ricochet2 = "ricochet2";
         public static string DeathScream = "wilhelmScream";
         public static string MapTexture = "map2";
         public static string WallTexture = "wall";
         public static string AmmoTexture = "__Ammo-256";
-        public static int RicochetProbability = 2; // 1 / N, 1->100%, 5->20% etc.
+        public static int RicochetProbability = 4; // 1 / N, 1->100%, 5->20% etc.
         public static int AmmoAmount = 100;
         public static Texture2D AmmoPosition = null;
     }

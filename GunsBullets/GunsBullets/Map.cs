@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -6,34 +8,36 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace GunsBullets {
     class Map {
-        private Texture2D _mapTexture;
+        public readonly Texture2D _mapTexture;
         private Texture2D _wallTexture;
         private Texture2D _ammoTexture;
         private List<Vector2> _wallPositions;
-        private Vector2 _ammoPosition;
+        private List<Vector2> _ammoPosition;
 
         public List<Vector2> WallPositions => _wallPositions;
         public Texture2D WallTexture => _wallTexture;
         public Map(ContentManager content) {
             Random rand = new Random();
+            var filestream = new FileStream("..\\..\\..\\..\\GunsBulletsContent\\mapa.txt", FileMode.Open, FileAccess.Read);
+            char sign;
             _mapTexture = content.Load<Texture2D>(Config.MapTexture);
             _wallTexture = content.Load<Texture2D>(Config.WallTexture);
             _ammoTexture = content.Load<Texture2D>(Config.AmmoTexture);
             Config.AmmoPosition = _ammoTexture;
             _wallPositions = new List<Vector2>();
+            _ammoPosition = new List<Vector2>();
             
-
-            _ammoPosition = new Vector2(_ammoTexture.Width, 0);
-            for (int i = 0; i < 20; i++)
-                _wallPositions.Add(new Vector2(rand.Next(14) * _wallTexture.Width, rand.Next(11) * _wallTexture.Height));
-            /* _wallPositions.Add(new Vector2(6 * _wallTexture.Width, 2 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(5 * _wallTexture.Width, 3 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(6 * _wallTexture.Width, 3 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(8 * _wallTexture.Width, 9 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(8 * _wallTexture.Width, 8 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(8 * _wallTexture.Width, 7 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(8 * _wallTexture.Width, 6 * _wallTexture.Height));
-             _wallPositions.Add(new Vector2(8 * _wallTexture.Width, 3 * _wallTexture.Height));*/
+            _ammoPosition.Add(new Vector2(_ammoTexture.Width, 0));
+            _ammoPosition.Add(new Vector2(28*_ammoTexture.Width, 0));
+            _ammoPosition.Add(new Vector2(_ammoTexture.Width, 20*_ammoTexture.Height));
+            _ammoPosition.Add(new Vector2(28*_ammoTexture.Width, 20 * _ammoTexture.Height));
+            for (int i=0; i < 21; i++)
+                for(int j=0; j < 61; j++)
+                {
+                    sign = (char)filestream.ReadByte();
+                    if(sign == '1')
+                        _wallPositions.Add(new Vector2(j/2 * _wallTexture.Width, i * _wallTexture.Height));
+                }
         }
 
         public void DrawMap(ref SpriteBatch spriteBatch) {
@@ -41,7 +45,8 @@ namespace GunsBullets {
             foreach (var wallposition in _wallPositions) {
                 spriteBatch.Draw(_wallTexture, wallposition, Color.White);
             }
-            spriteBatch.Draw(_ammoTexture, _ammoPosition, Color.White);
+            foreach(var ammoposition in _ammoPosition)
+                spriteBatch.Draw(_ammoTexture, ammoposition, Color.White);
         }
     }
 }

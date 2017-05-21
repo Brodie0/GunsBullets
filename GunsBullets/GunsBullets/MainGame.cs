@@ -15,6 +15,9 @@ namespace GunsBullets {
     public class MainGame : Microsoft.Xna.Framework.Game {
         GraphicsDeviceManager gdm;
         SpriteBatch spriteBatch;
+        private Vector2 _cameraPosition;
+        private Vector2 m_halfViewSize;
+        public Matrix viewMatrix;
 
         private List<Player> players;
         private List<Bullet> bullets;
@@ -26,7 +29,7 @@ namespace GunsBullets {
             gdm = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
         }
-
+      
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
         /// This is where it can query for any required services and load any non-graphic
@@ -43,6 +46,11 @@ namespace GunsBullets {
             base.Initialize();
         }
 
+        private void UpdateViewMatrix()
+        {
+            viewMatrix = Matrix.CreateTranslation(m_halfViewSize.X - _cameraPosition.X, m_halfViewSize.Y - _cameraPosition.Y, 0.0f);
+        }
+
         /// <summary>
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
@@ -52,6 +60,9 @@ namespace GunsBullets {
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
             players.Add(new Player(Content));
+            _cameraPosition = players[0].SpritePosition;
+            m_halfViewSize = new Vector2(gdm.GraphicsDevice.Viewport.Width * 0.5f, gdm.GraphicsDevice.Viewport.Height * 0.5f);
+            UpdateViewMatrix();
             map = new Map(Content);
         }
 
@@ -74,7 +85,7 @@ namespace GunsBullets {
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed) Exit();
 
             foreach (var player in players) {
-                player.UpdatePlayer(ref gdm, ref bullets, map.WallPositions, map.WallTexture);
+                player.UpdatePlayer(ref gdm, ref map, ref bullets, map.WallPositions, map.WallTexture);
                 if (player.ifReloadPosition() && Keyboard.GetState().IsKeyDown(Keys.R) && !ifpressreload) {
                     ifpressreload = true;
                     player.AmmoReload(Content);
@@ -84,14 +95,14 @@ namespace GunsBullets {
 
                 if (player.ContinuousFire) {
                     if (_fireIter == Config.FireRate) {
-                        var bullet = new Bullet(Content, player.SpritePosition, player.Rotation,
+                        var bullet = new Bullet(ref gdm, Content, player.SpritePosition, player.Rotation,
                             player.OldMouseState, player.Origin);
                         player.DecreaseAmmo();
                         bullets.Add(bullet);
                         _fireIter = 0;
                     } else _fireIter++;
                 } else if (player.SingleShot) {
-                    var bullet = new Bullet(Content, player.SpritePosition, player.Rotation,
+                    var bullet = new Bullet(ref gdm, Content, player.SpritePosition, player.Rotation,
                         player.OldMouseState, player.Origin);
                     player.DecreaseAmmo();
                     bullets.Add(bullet);
@@ -99,11 +110,13 @@ namespace GunsBullets {
                     _fireIter = 0;
 
             }
+            _cameraPosition = players[0].SpritePosition;
+            UpdateViewMatrix();
 
             players.RemoveAll(player => player.DestroyMe);
             
             foreach (var bullet in bullets) {
-                bullet.UpdateBullet(ref gdm, map.WallPositions, map.WallTexture);
+                bullet.UpdateBullet(ref gdm,ref map, map.WallPositions, map.WallTexture);
             }
 
             bullets.RemoveAll(bullet => bullet.DestroyMe);
@@ -119,7 +132,7 @@ namespace GunsBullets {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             // Draw the sprite. (This isn't a language construct!)
-            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend); {
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {
                 map.DrawMap(ref spriteBatch);
                 foreach (var player in players) player.DrawPlayer(ref spriteBatch);
                 foreach (var bullet in bullets) bullet.DrawBullet(ref spriteBatch);
