@@ -6,25 +6,33 @@ using System.Text;
 
 namespace GunsBullets {
     class Config {
-        public static string ContentPath = "..\\..\\..\\Content\\Content";
-        public static float BulletSpeed = 15.0f;
-        public static float PlayerMaxSpeed = 5.0f;
+        public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
+        //textures
         public static string PlayerTexture = "soldier1";
         public static string BulletTexture = "bullet1";
-        public static int FireRate = 5;
-        public static int BulletAppearDistanceFromPlayer = 15;
-        public static string BulletSoundEffect = "m4a1single";
-        public static string AmmoReloadSound = "gunreload";
-        public static int RicochetesSoundsAmount = 2;
-        public static string Ricochet1 = "ricochet1";
-        public static string WallPlacement = "mapa.txt";
-        public static string Ricochet2 = "ricochet2";
-        public static string DeathScream = "wilhelmScream";
         public static string MapTexture = "map2";
         public static string WallTexture = "wall";
         public static string AmmoTexture = "__Ammo-256";
+        public static string WallAndAmmoPositions = "mapa.txt";
+        //sounds
+        public static string Sound_Shot = "m4a1single";
+        public static string Sound_Reload = "gunreload";
+        public static string Sound_Ricochet1 = "ricochet1";
+        public static string Sound_Ricochet2 = "ricochet2";
+        public static string Sound_DeathScream = "wilhelmScream";
+        //other
+        public static int RicochetesSoundsAmount = 2;
+        public static int FireRate = 10;
+        public static int BulletAppearDistanceFromPlayer = 15;
+        public static float BulletSpeed = 15.0f;
+        public static float PlayerMaxSpeed = 5.0f;
+
         public static int RicochetProbability = 4; // 1 / N, 1->100%, 5->20% etc.
-        public static int AmmoAmount = 100;
+        public static int MaxAmmoAmount = 100;
         public static Texture2D AmmoPosition = null;
+        public static char WallSignInTxtMap = '1';
+        public static char AmmoSignInTxtMap = '2';
+        public static short SpacesForEachSignInTxtMap = 2;
+
     }
 }

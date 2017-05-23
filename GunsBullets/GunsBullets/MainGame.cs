@@ -23,7 +23,7 @@ namespace GunsBullets {
         private List<Bullet> bullets;
         private int _fireIter;
         private Map map;
-        private bool ifpressreload;
+        private bool ifPressReload;
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
@@ -39,7 +39,7 @@ namespace GunsBullets {
         protected override void Initialize() {
             players = new List<Player>();
             bullets = new List<Bullet>();
-            ifpressreload = false;
+            ifPressReload = false;
             _fireIter = 0;
 
             IsMouseVisible = true;
@@ -86,12 +86,12 @@ namespace GunsBullets {
 
             foreach (var player in players) {
                 player.UpdatePlayer(ref gdm, ref map, ref bullets, map.WallPositions, map.WallTexture);
-                if (player.ifReloadPosition() && Keyboard.GetState().IsKeyDown(Keys.R) && !ifpressreload) {
-                    ifpressreload = true;
+                if (player.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
+                    ifPressReload = true;
                     player.AmmoReload(Content);
                 }
-                if (player.ifReloadPosition() && Keyboard.GetState().IsKeyUp(Keys.R) && ifpressreload)
-                    ifpressreload = false;
+                if (player.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
+                    ifPressReload = false;
 
                 if (player.ContinuousFire) {
                     if (_fireIter == Config.FireRate) {
@@ -129,7 +129,7 @@ namespace GunsBullets {
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime) {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(Color.Black);
 
             // Draw the sprite. (This isn't a language construct!)
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {

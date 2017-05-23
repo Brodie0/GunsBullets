@@ -13,11 +13,9 @@ namespace GunsBullets {
         private Vector2 _spritePosition;
         private Vector2 _spritePositionPrev;
         private Vector2 _spriteSpeed;
-        //private bool _destroyMe;
         private readonly SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
-        //public bool DestroyMe { get { return _destroyMe; } set { _destroyMe = value; } }
         public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
@@ -25,7 +23,6 @@ namespace GunsBullets {
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
             var newY = Mouse.GetState().Y + playerPosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
-            //pocisk musi sie pojawic nie na krancu tekstury gracza ale mniej wiecej na srodku (na koncu karabinu)
             playerRotation -= Convert.ToSingle(Math.PI / 2.5);
             _bulletTexture = content.Load<Texture2D>(Config.BulletTexture);
             _origin = new Vector2(_bulletTexture.Width / 2.0f, _bulletTexture.Height / 2.0f);
@@ -35,12 +32,12 @@ namespace GunsBullets {
             float distance = Convert.ToSingle(Math.Sqrt(Math.Pow(newX - _spritePosition.X, 2.0) + Math.Pow(newY - _spritePosition.Y, 2.0)));
             _spriteSpeed = new Vector2((newX - _spritePosition.X) * Config.BulletSpeed / distance, (newY - _spritePosition.Y) * Config.BulletSpeed / distance);
             DestroyMe = false;
-            var sound = content.Load<SoundEffect>(Config.BulletSoundEffect);
+            var sound = content.Load<SoundEffect>(Config.Sound_Shot);
             sound.Play();
 
             _ricochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
-            _ricochetSounds[0] = content.Load<SoundEffect>(Config.Ricochet1);
-            _ricochetSounds[1] = content.Load<SoundEffect>(Config.Ricochet2);
+            _ricochetSounds[0] = content.Load<SoundEffect>(Config.Sound_Ricochet1);
+            _ricochetSounds[1] = content.Load<SoundEffect>(Config.Sound_Ricochet2);
 
             _radius = (_bulletTexture.Width / 2.0f + _bulletTexture.Height / 2.0f) / 2.0f;
 
@@ -56,7 +53,7 @@ namespace GunsBullets {
             var maxY = map._mapTexture.Height - _bulletTexture.Height;
             const int minY = 0;
 
-            //implementacja rykoszetu od murow
+            //ricochete of walls
             foreach (var wallPosition in wallPositions) {
 
                 if (!(wallPosition.X > _spritePosition.X + _bulletTexture.Width || _spritePosition.X > wallPosition.X + wallTexture.Width ||
@@ -73,7 +70,7 @@ namespace GunsBullets {
                 }
             }
 
-            //implementacja rykoszetu od scian mapy
+            //ricochete off borders
             if (_spritePosition.Y < minY)
                 RicochetOrDestruction(false, minY);
             else if (_spritePosition.Y > maxY)
@@ -87,7 +84,7 @@ namespace GunsBullets {
         }
 
         public void DrawBullet(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(_bulletTexture, _spritePosition/* - _origin*/, Color.White);
+            spriteBatch.Draw(_bulletTexture, _spritePosition - _origin, Color.White);
         }
 
 

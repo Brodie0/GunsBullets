@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Input;
+using System.Diagnostics;
 
 namespace GunsBullets {
     class Player {
@@ -31,19 +32,19 @@ namespace GunsBullets {
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
         public bool DestroyMe => _destroyMe;
-        public void DecreaseAmmo() { _ammoAmount--; Console.WriteLine(_ammoAmount); }
+        public void DecreaseAmmo() { _ammoAmount--; }
 
         public Player(ContentManager content) {
             _playerTexture = content.Load<Texture2D>(Config.PlayerTexture);
             _origin = new Vector2(_playerTexture.Width / 2.0f, _playerTexture.Height / 2.0f);
             _radiusOfBody = (_playerTexture.Width / 2.0f + _playerTexture.Height / 2.0f) / 2.0f;
-            _deathScream = content.Load<SoundEffect>(Config.DeathScream);
+            _deathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
             _spritePosition = Vector2.Zero;
             _spriteSpeed = Vector2.Zero;
             _continuousFire = false;
             _singleShot = false;
             _destroyMe = false;
-            _ammoAmount = Config.AmmoAmount;
+            _ammoAmount = Config.MaxAmmoAmount;
             _deathsAmount = 0;
         }
 
@@ -58,28 +59,9 @@ namespace GunsBullets {
             spriteBatch.Draw(_playerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
-        public void AmmoReload(ContentManager content) {
-            _ammoAmount = Config.AmmoAmount;
-            var sound = content.Load<SoundEffect>(Config.AmmoReloadSound);
-            sound.Play();
-        }
 
-        public bool ifReloadPosition() {
-            if ((_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
-               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height) ||
-               (_spritePosition.X + _origin.X >= 28*Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 29 &&
-               _spritePosition.Y + _origin.Y >= 0 && _spritePosition.Y + _origin.Y <= Config.AmmoPosition.Height) ||
-               (_spritePosition.X + _origin.X >= Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 2 &&
-               _spritePosition.Y + _origin.Y >= 20* Config.AmmoPosition.Height && _spritePosition.Y + _origin.Y <= 21*Config.AmmoPosition.Height) ||
-               (_spritePosition.X + _origin.X >= 28*Config.AmmoPosition.Width && _spritePosition.X + _origin.X <= Config.AmmoPosition.Width * 29 &&
-               _spritePosition.Y + _origin.Y >= 20* Config.AmmoPosition.Height && _spritePosition.Y + _origin.Y <= 21*Config.AmmoPosition.Height))
-                return true;
-            return false;
-        }
-
-        private void UpdateKeyboard(ref GraphicsDeviceManager graphics, ref Map map,  IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
+        private void UpdateKeyboard(ref GraphicsDeviceManager graphics, ref Map map, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
             KeyboardState newKeyboardState = Keyboard.GetState();
-            Vector2 oldPosition = _spritePosition;
             //interface features
             if (newKeyboardState.IsKeyDown(Keys.F))
                 graphics.ToggleFullScreen();
@@ -101,35 +83,67 @@ namespace GunsBullets {
                 _spriteSpeed.X = Config.PlayerMaxSpeed;
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
                 _spriteSpeed.X = 0.0f;
-            _spritePosition += _spriteSpeed;
+
             var maxX = map._mapTexture.Width - _playerTexture.Width;
             const int minX = 0;
             var maxY = map._mapTexture.Height - _playerTexture.Height;
             const int minY = 0;
 
-            // Check for collision.
-            if (_spritePosition.X > maxX)
-                _spritePosition.X = maxX;
-            else if (_spritePosition.X < minX)
-                _spritePosition.X = minX;
+            // borders collision
+            if (_spritePosition.X + _spriteSpeed.X > maxX)
+                _spriteSpeed.X = 0;
+            else if (_spritePosition.X + _spriteSpeed.X < minX)
+                _spriteSpeed.X = 0;
 
-            if (_spritePosition.Y > maxY)
-                _spritePosition.Y = maxY;
-            else if (_spritePosition.Y < minY)
-                _spritePosition.Y = minY;
+            if (_spritePosition.Y + _spriteSpeed.Y > maxY)
+                _spriteSpeed.Y = 0;
+            else if (_spritePosition.Y + _spriteSpeed.Y < minY)
+                _spriteSpeed.Y = 0;
 
-            //kolizja  z murem, jako kolizja dwóch prostokątów
+            //wall collision
             foreach (var wallPosition in wallPositions) {
-                var p = new Rectangle((int)_spritePosition.X, (int)_spritePosition.Y, _playerTexture.Width, _playerTexture.Height);
+                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _playerTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
-                if (p.Intersects(r))
-                    _spritePosition = oldPosition;
+                if (Intersects(p, r)) {
+                    double wy = (p.Radius + r.Height / 2) * (p.Center.Y - r.Center.Y);
+                    double hx = (p.Radius + r.Width / 2) * (p.Center.X - r.Center.X);
+                    if (wy > hx) {
+                        if (wy > -hx && _spriteSpeed.Y < 0)
+                            _spriteSpeed.Y = 0;
+                        else if( wy <=- hx && _spriteSpeed.X > 0)
+                            _spriteSpeed.X = 0;
+                    }
+                    else {
+                        if (wy > -hx && _spriteSpeed.X < 0)
+                            _spriteSpeed.X = 0;
+                        else if(wy <= -hx && _spriteSpeed.Y > 0)  {
+                            _spriteSpeed.Y = 0;
+                        }
+                    }
+                }
             }
-
+            _spritePosition += _spriteSpeed;
             _oldKeyboardState = newKeyboardState;
         }
 
+        bool Intersects(BoundingSphere circle, Rectangle rect) {
+            Vector2 circleDistance;
+            circleDistance.X = Math.Abs(circle.Center.X - rect.Center.X);
+            circleDistance.Y = Math.Abs(circle.Center.Y - rect.Center.Y);
+
+            if (circleDistance.X > (rect.Width / 2 + circle.Radius)) { return false; }
+            if (circleDistance.Y > (rect.Height / 2 + circle.Radius)) { return false; }
+
+            if (circleDistance.X <= (rect.Width / 2)) { return true; }
+            if (circleDistance.Y <= (rect.Height / 2)) { return true; }
+
+            double arg1 = Math.Pow(circleDistance.X - rect.Width / 2, 2);
+            double arg2 = Math.Pow(circleDistance.Y - rect.Height / 2, 2);
+            double cornerDistance_sq = arg1 + arg2;
+
+            return (cornerDistance_sq <= Math.Pow(circle.Radius, 2));
+        }
 
         private void UpdateMouse(ref GraphicsDeviceManager graphics) {
             var newMouseState = Mouse.GetState();
@@ -165,7 +179,7 @@ namespace GunsBullets {
 
 
         private void UpdateCollision(IEnumerable<Bullet> bullets) {
-            // odległość pomiędzy środkami okręgów (gracz jako okrąg i pocisk tez)
+            // distance between player's and bullet's centres
             foreach (var bullet in bullets) {
                 var distance = Convert.ToSingle(
                     Math.Sqrt(Math.Pow(bullet.SpritePosition.X - _spritePosition.X - _origin.X, 2) +
@@ -177,15 +191,28 @@ namespace GunsBullets {
             }
         }
 
+        public void AmmoReload(ContentManager content) {
+            _ammoAmount = Config.MaxAmmoAmount;
+            var sound = content.Load<SoundEffect>(Config.Sound_Reload);
+            sound.Play();
+        }
+
+        public bool UpdateReloadPosition(IEnumerable<Vector2> ammoPositions, Texture2D ammoTexture) {
+            foreach(var ammoPosition in ammoPositions) {
+                if (_spritePosition.X + _origin.X >= ammoPosition.X && _spritePosition.X + _origin.X <= ammoPosition.X + ammoTexture.Width &&
+                    _spritePosition.Y + _origin.Y >= ammoPosition.Y && _spritePosition.Y + _origin.Y <= ammoPosition.Y + ammoTexture.Height)
+                    return true;
+            }
+            return false;
+        }
 
         private void OnHitReact() {
             _deathScream.Play();
             _deathsAmount++;
-            Thread.Sleep(1000);
+            Thread.Sleep(200);
             _spritePosition = Vector2.Zero;
-            _ammoAmount = Config.AmmoAmount;
+            _ammoAmount = Config.MaxAmmoAmount;
             //_destroyMe = true;
-            Console.WriteLine("Deaths: " + _deathsAmount);
         }
     }
 }
