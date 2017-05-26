@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using System.Threading.Tasks;
 
 namespace GunsBullets {
     /// <summary>
@@ -23,7 +24,10 @@ namespace GunsBullets {
         private List<Bullet> bullets;
         private int _fireIter;
         private Map map;
+        private Interface interf;
         private bool ifPressReload;
+        private Task host;
+        private Task guest;
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
@@ -41,8 +45,9 @@ namespace GunsBullets {
             bullets = new List<Bullet>();
             ifPressReload = false;
             _fireIter = 0;
-
             IsMouseVisible = true;
+            host = null;
+            guest = null;
             base.Initialize();
         }
 
@@ -64,6 +69,7 @@ namespace GunsBullets {
             m_halfViewSize = new Vector2(gdm.GraphicsDevice.Viewport.Width * 0.5f, gdm.GraphicsDevice.Viewport.Height * 0.5f);
             UpdateViewMatrix();
             map = new Map(Content);
+            interf = new Interface();
         }
 
         /// <summary>
@@ -82,7 +88,32 @@ namespace GunsBullets {
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime) {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed) Exit();
+
+            interf.Update();
+            if (interf.ImAHost) {
+                Console.WriteLine("jestem hostem");
+                if(host == null)
+                    host = Task.Factory.StartNew(() => Host.instance.Start());
+                else if(Host.instance.Guests.Count != 0) {
+                    var l = new List<Player>(2);
+                    l.Add(new Player(Content));
+                    l.Add(new Player(Content));
+                    players = players.Concat(l).ToList();
+                    Console.WriteLine("£ACZE LISTY: " + players.ToString());
+                }
+            }
+            if (interf.ImAGuest) {
+                Console.WriteLine("jestem gosciemm");
+                if (guest == null) {
+                    Guest.instance.PlayerToSend = players.First();
+                    guest = Task.Factory.StartNew(() => Guest.instance.Start());
+                }
+                else
+                    Guest.instance.PlayerToSend = players.First();
+            }
+            if (interf.ToggleFullScreen)
+                gdm.ToggleFullScreen();
+            
 
             foreach (var player in players) {
                 player.UpdatePlayer(ref gdm, ref map, ref bullets, map.WallPositions, map.WallTexture);
@@ -114,12 +145,10 @@ namespace GunsBullets {
             UpdateViewMatrix();
 
             players.RemoveAll(player => player.DestroyMe);
-            
-            foreach (var bullet in bullets) {
-                bullet.UpdateBullet(ref gdm,ref map, map.WallPositions, map.WallTexture);
-            }
-
             bullets.RemoveAll(bullet => bullet.DestroyMe);
+            foreach (var bullet in bullets) {
+                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
+            }
             
             base.Update(gameTime);
         }
@@ -134,6 +163,7 @@ namespace GunsBullets {
             // Draw the sprite. (This isn't a language construct!)
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {
                 map.DrawMap(ref spriteBatch);
+                spriteBatch.DrawString(Content.Load<SpriteFont>("font"), "TEKST JAKIS", new Vector2(-300, 0), Color.White);
                 foreach (var player in players) player.DrawPlayer(ref spriteBatch);
                 foreach (var bullet in bullets) bullet.DrawBullet(ref spriteBatch);
             } spriteBatch.End();
