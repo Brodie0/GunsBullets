@@ -17,7 +17,6 @@ namespace GunsBullets {
         public static readonly Host instance = new Host();
         TcpListener serverSocket;
         IPEndPoint serverEndPoint;
-        int guestsConnected = 0;
         TcpClient client;
         List<Player> guests;
 
@@ -30,6 +29,10 @@ namespace GunsBullets {
             guests = new List<Player>(Config.MaxNumberOfPlayers);
         }
 
+        public void Start() {
+            serverSocket.Start();
+        }
+
         public void Stop() {
             client.Close();
             serverSocket.Stop();
@@ -38,11 +41,10 @@ namespace GunsBullets {
             Console.WriteLine("Host finished working");
         }
 
-        public void Start() {
+        public void AddNewListeningThread() {
             try {
                 ParallelOptions p = new ParallelOptions();
                 p.MaxDegreeOfParallelism = Config.MaxNumberOfPlayers;
-                serverSocket.Start();
                 using (Task listeningTask = Task.Factory.StartNew(() => Listen()))
                     listeningTask.Start();
             }
@@ -60,22 +62,40 @@ namespace GunsBullets {
                 // You could also user server.AcceptSocket() here.
                 client = serverSocket.AcceptTcpClient();
                 Console.WriteLine("Connected!");
-                guestsConnected++;
+                //if connection is established, server should send unique id number to every new guest, then every guest can be identitied
+                //and ovverided on server
+                NetworkStream stream = client.GetStream();
                 while (client!=null) {
                     Console.WriteLine("petla!");
-                    guest = ReadData(ref client);
-                    //guests.RemoveAt(0);
-                    guests.Add(guest);
-                    Console.WriteLine(guest.ToString());
-                    Console.WriteLine("Guests Connected: " + guestsConnected);
+                    guest = ReadPlayerData(ref client, ref stream);
+                    Console.WriteLine("NUMER GOSCIA: " + guest.ServerIdentificationNumber);
+                    bool newGuest = true;
+                    //there's second foreach loop in maingame (other thread) so its necessary to lock both
+                    lock (guests) {
+                        foreach (Player actualGuest in guests) {
+                            if (actualGuest.ServerIdentificationNumber == guest.ServerIdentificationNumber) {
+                                guests[guest.ServerIdentificationNumber] = guest;
+                                newGuest = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (newGuest && guests.Count < Config.MaxNumberOfPlayers) {
+                        //give him a key here
+                        guest.ServerIdentificationNumber = guests.Count + 1;
+                        WritePlayerKey(guest.ServerIdentificationNumber, ref stream);
+                        //add guest to actual guests
+                        guests.Add(guest);
+                    }
+                    //Console.WriteLine(guests.First().ToString());
+                    //Console.WriteLine("Guests Connected: " + guests.Count);
                 }
             }
         }
 
-        private Player ReadData(ref TcpClient client) {
+        private Player ReadPlayerData(ref TcpClient client, ref NetworkStream stream) {
             // Get a stream object for reading and writing
             Player guest = null;
-            NetworkStream stream = client.GetStream();
             try {
                 BinaryFormatter formatter = new BinaryFormatter();
                 guest = (Player)formatter.Deserialize(stream);
@@ -83,10 +103,14 @@ namespace GunsBullets {
             catch(SerializationException e) {
                 Console.WriteLine("Serialization failed. Reason: " + e.Message);
             }
-            finally {
-                stream.Close();
-            }
             return guest;
+        }
+
+        private void WritePlayerKey(int key, ref NetworkStream stream) {
+            //send the key
+            byte[] keyBytes = BitConverter.GetBytes(key);
+            stream.Write(keyBytes, 0, keyBytes.Length);
+            Console.WriteLine("Host send a unique key: {0}", key);
         }
     }
 }

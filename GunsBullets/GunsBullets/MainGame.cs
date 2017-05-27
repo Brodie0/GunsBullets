@@ -91,31 +91,45 @@ namespace GunsBullets {
 
             interf.Update();
             if (interf.ImAHost) {
-                Console.WriteLine("jestem hostem");
-                if(host == null)
-                    host = Task.Factory.StartNew(() => Host.instance.Start());
-                else if(Host.instance.Guests.Count != 0) {
-                    var l = new List<Player>(2);
-                    l.Add(new Player(Content));
-                    l.Add(new Player(Content));
-                    players = players.Concat(l).ToList();
+                if (host == null) {
+                    Host.instance.Start();
+                    host = Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
+                    Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
+                }
+                else if (Host.instance.Guests.Count != 0) {
+                    if (players.Count > 1)
+                        players.RemoveRange(1, players.Count - 1);
+                    lock (Host.instance.Guests) {
+                        players = players.Concat(Host.instance.Guests).ToList();
+                    }
+                    foreach (Player player in players) {
+                        player.DeathScream = Content.Load<SoundEffect>(Config.Sound_DeathScream);
+                        player.PlayerTexture = Content.Load<Texture2D>(Config.PlayerTexture);
+                    }
+
                     Console.WriteLine("£ACZE LISTY: " + players.ToString());
+                    players.ForEach(Console.WriteLine);
+                    //Host.instance.Stop();
                 }
             }
             if (interf.ImAGuest) {
-                Console.WriteLine("jestem gosciemm");
                 if (guest == null) {
                     Guest.instance.PlayerToSend = players.First();
                     guest = Task.Factory.StartNew(() => Guest.instance.Start());
                 }
-                else
+                else {
+                    if(Guest.instance.ServerIdentificationNumber != -1)
+                        players.First().ServerIdentificationNumber = Guest.instance.ServerIdentificationNumber;
                     Guest.instance.PlayerToSend = players.First();
+                    Console.WriteLine(players.First().ToString());
+                }
             }
             if (interf.ToggleFullScreen)
                 gdm.ToggleFullScreen();
-            
 
-            foreach (var player in players) {
+            //update only if window is focused
+            if (IsActive) {
+                Player player = players.First();
                 player.UpdatePlayer(ref gdm, ref map, ref bullets, map.WallPositions, map.WallTexture);
                 if (player.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
                     ifPressReload = true;
@@ -131,25 +145,27 @@ namespace GunsBullets {
                         player.DecreaseAmmo();
                         bullets.Add(bullet);
                         _fireIter = 0;
-                    } else _fireIter++;
-                } else if (player.SingleShot) {
+                    }
+                    else
+                        _fireIter++;
+                }
+                else if (player.SingleShot) {
                     var bullet = new Bullet(ref gdm, Content, player.SpritePosition, player.Rotation,
                         player.OldMouseState, player.Origin);
                     player.DecreaseAmmo();
                     bullets.Add(bullet);
-                } else if (!player.ContinuousFire)
+                }
+                else if (!player.ContinuousFire)
                     _fireIter = 0;
+                _cameraPosition = players[0].SpritePosition;
+                UpdateViewMatrix();
 
+                players.RemoveAll(player1 => player1.DestroyMe);
+                bullets.RemoveAll(bullet => bullet.DestroyMe);
+                foreach (var bullet in bullets) {
+                    bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
+                }
             }
-            _cameraPosition = players[0].SpritePosition;
-            UpdateViewMatrix();
-
-            players.RemoveAll(player => player.DestroyMe);
-            bullets.RemoveAll(bullet => bullet.DestroyMe);
-            foreach (var bullet in bullets) {
-                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
-            }
-            
             base.Update(gameTime);
         }
 
@@ -159,11 +175,11 @@ namespace GunsBullets {
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Draw(GameTime gameTime) {
             GraphicsDevice.Clear(Color.Black);
-
             // Draw the sprite. (This isn't a language construct!)
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {
                 map.DrawMap(ref spriteBatch);
                 spriteBatch.DrawString(Content.Load<SpriteFont>("font"), "TEKST JAKIS", new Vector2(-300, 0), Color.White);
+
                 foreach (var player in players) player.DrawPlayer(ref spriteBatch);
                 foreach (var bullet in bullets) bullet.DrawBullet(ref spriteBatch);
             } spriteBatch.End();

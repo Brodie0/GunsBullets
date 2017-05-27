@@ -9,10 +9,12 @@ using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
 using System.Threading.Tasks;
 
+//TODO przesłany player nie ma informacji o texturze
 namespace GunsBullets {
     [Serializable]
     class Player {
-        [NonSerialized] private readonly Texture2D _playerTexture;
+        private Int32 serverIdentificationNumber;
+        [NonSerialized] private Texture2D _playerTexture;
         private readonly Vector2 _origin;
         [NonSerialized] private KeyboardState _oldKeyboardState;
         [NonSerialized] private MouseState _oldMouseState;
@@ -22,7 +24,7 @@ namespace GunsBullets {
         [NonSerialized] private bool _continuousFire;
         [NonSerialized] private bool _singleShot;
         private readonly float _radiusOfBody;
-        [NonSerialized] private readonly SoundEffect _deathScream;
+        [NonSerialized] private SoundEffect _deathScream;
         private readonly bool _destroyMe;
         private int _ammoAmount;
         private int _deathsAmount;
@@ -34,13 +36,17 @@ namespace GunsBullets {
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
         public bool DestroyMe => _destroyMe;
+        public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
+        public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
+        public Int32 ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
+
         public void DecreaseAmmo() { _ammoAmount--; }
 
         public Player(ContentManager content) {
-            _playerTexture = content.Load<Texture2D>(Config.PlayerTexture);
-            _origin = new Vector2(_playerTexture.Width / 2.0f, _playerTexture.Height / 2.0f);
-            _radiusOfBody = (_playerTexture.Width / 2.0f + _playerTexture.Height / 2.0f) / 2.0f;
-            _deathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
+            PlayerTexture = content.Load<Texture2D>(Config.PlayerTexture);
+            _origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
+            _radiusOfBody = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
+            DeathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
             _spritePosition = Vector2.Zero;
             _spriteSpeed = Vector2.Zero;
             _continuousFire = false;
@@ -58,7 +64,7 @@ namespace GunsBullets {
 
 
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(_playerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
 
@@ -82,9 +88,9 @@ namespace GunsBullets {
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
                 _spriteSpeed.X = 0.0f;
 
-            var maxX = map._mapTexture.Width - _playerTexture.Width;
+            var maxX = map._mapTexture.Width - PlayerTexture.Width;
             const int minX = 0;
-            var maxY = map._mapTexture.Height - _playerTexture.Height;
+            var maxY = map._mapTexture.Height - PlayerTexture.Height;
             const int minY = 0;
 
             // borders collision
@@ -100,7 +106,7 @@ namespace GunsBullets {
 
             //wall collision
             foreach (var wallPosition in wallPositions) {
-                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _playerTexture.Height / 2);
+                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), PlayerTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
                 if (Collisions.Intersects(p, r)) {
@@ -191,7 +197,7 @@ namespace GunsBullets {
         }
 
         private void OnHitReact() {
-            _deathScream.Play();
+            DeathScream.Play();
             _deathsAmount++;
             Thread.Sleep(200);
             _spritePosition = Vector2.Zero;
@@ -204,7 +210,7 @@ namespace GunsBullets {
             string s2 = _spritePosition.ToString();
             string s3 = _spriteSpeed.ToString();
 
-            return "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
+            return "\nUniqueKey: "+ serverIdentificationNumber + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
                 "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: " + _destroyMe+ "\n";
         }
     }

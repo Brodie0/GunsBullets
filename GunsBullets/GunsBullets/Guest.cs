@@ -13,9 +13,10 @@ namespace GunsBullets {
         public static readonly Guest instance = new Guest();
         TcpClient clientSocket;
         IPEndPoint serverEndPoint;
-        private Player _playerToSend;
-        public Player PlayerToSend { set => _playerToSend = value; }
-
+        private volatile Player _playerToSend;
+        private Int32 serverIdentificationNumber;
+        public Player PlayerToSend { get => _playerToSend; set => _playerToSend = value; }
+        public int ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
 
         private Guest() {
             // Create a TcpClient.
@@ -24,6 +25,7 @@ namespace GunsBullets {
             // combination.
             serverEndPoint = new IPEndPoint(IPAddress.Loopback, Config.Port);
             clientSocket = new TcpClient();
+            serverIdentificationNumber = -1;
         }
 
         public void Stop() {
@@ -38,12 +40,24 @@ namespace GunsBullets {
                 // Get a client stream for reading and writing.
                 using (NetworkStream stream = LookForHost()) {
                     //while (true) {
-                        // Send the message to the connected TcpServer. 
+                    // Send the message to the connected TcpServer. 
+                    data = ObjectToByteArray(_playerToSend);
+                    stream.Write(data, 0, data.Length);
+                    Console.WriteLine("WYSYŁAM JAKIS SZIT");
+                    //Thread.Sleep(500);
+                    //}
+                    //get unique key from host
+                    data = new Byte[sizeof(Int32)];
+                    stream.Read(data, 0, data.Length);
+                    serverIdentificationNumber = BitConverter.ToInt32(data, 0);
+                    Console.WriteLine("Received unique key: {0}", serverIdentificationNumber);
+
+                    while (true) {
                         data = ObjectToByteArray(_playerToSend);
                         stream.Write(data, 0, data.Length);
                         Console.WriteLine("WYSYŁAM JAKIS SZIT");
-                        //Thread.Sleep(500);
-                    //}
+                        Thread.Sleep(Config.SendingPackagesDelay);
+                    }
                 }
             }
             catch (ArgumentNullException e) {

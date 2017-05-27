@@ -29,13 +29,16 @@ namespace GunsBullets {
             if (newKeyboardState.IsKeyDown(Keys.F))
                 ToggleFullScreen = !ToggleFullScreen;
             //multiplayer options
-            if (newKeyboardState.IsKeyDown(Keys.H) && !ImAGuest) {
+            if (newKeyboardState.IsKeyDown(Keys.H) && _oldKeyboardState.IsKeyUp(Keys.H) && !ImAGuest) {
                 ImAHost = !ImAHost;
             }
-            if (newKeyboardState.IsKeyDown(Keys.G) && !ImAHost) {
+            if (newKeyboardState.IsKeyDown(Keys.G) && _oldKeyboardState.IsKeyUp(Keys.G) && !ImAHost) {
                 ImAGuest = !ImAGuest;
             }
-
+            //if(ImAHost)
+            //    Console.WriteLine("JESTEM HOSTEM!");
+            //if(ImAGuest)
+            //    Console.WriteLine("JESTEM GOSCIEM!");
             _oldKeyboardState = newKeyboardState;
         }
     }
