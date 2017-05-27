@@ -15,6 +15,7 @@ namespace GunsBullets {
     class Player {
         private Int32 serverIdentificationNumber;
         [NonSerialized] private Texture2D _playerTexture;
+        private List<Bullet> _myBullets;
         private readonly Vector2 _origin;
         [NonSerialized] private KeyboardState _oldKeyboardState;
         [NonSerialized] private MouseState _oldMouseState;
@@ -39,6 +40,7 @@ namespace GunsBullets {
         public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
         public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
         public Int32 ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
+        internal List<Bullet> MyBullets { get => _myBullets; set => _myBullets = value; }
 
         public void DecreaseAmmo() { _ammoAmount--; }
 
@@ -62,11 +64,9 @@ namespace GunsBullets {
             UpdateCollision(bullets);
         }
 
-
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
             spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
-
 
         private void UpdateKeyboard(ref Map map, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
             KeyboardState newKeyboardState = Keyboard.GetState();

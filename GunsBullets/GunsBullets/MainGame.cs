@@ -26,8 +26,6 @@ namespace GunsBullets {
         private Map map;
         private Interface interf;
         private bool ifPressReload;
-        private Task host;
-        private Task guest;
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
@@ -41,13 +39,11 @@ namespace GunsBullets {
         /// and initialize them as well.
         /// </summary>
         protected override void Initialize() {
-            players = new List<Player>();
+            players = new List<Player>(Config.MaxNumberOfPlayers);
             bullets = new List<Bullet>();
             ifPressReload = false;
             _fireIter = 0;
             IsMouseVisible = true;
-            host = null;
-            guest = null;
             base.Initialize();
         }
 
@@ -90,13 +86,18 @@ namespace GunsBullets {
         protected override void Update(GameTime gameTime) {
 
             interf.Update();
-            if (interf.ImAHost) {
-                if (host == null) {
+            if (interf.Hosting == true) {
+                //TODO host and guest Task variables are just for checking existance of those objects, could be replaced by booleans
+                //or just other ideas for checking
+                if (interf.InitializeHost) {
                     Host.instance.Start();
-                    host = Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
-                    Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
+                    for (int i = 0; i < Config.MaxNumberOfPlayers; i++) {
+                        Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
+                    }
+                    interf.InitializeHost = false;
                 }
                 else if (Host.instance.Guests.Count != 0) {
+                    Console.WriteLine("NO HOST TEZ");
                     if (players.Count > 1)
                         players.RemoveRange(1, players.Count - 1);
                     lock (Host.instance.Guests) {
@@ -106,24 +107,31 @@ namespace GunsBullets {
                         player.DeathScream = Content.Load<SoundEffect>(Config.Sound_DeathScream);
                         player.PlayerTexture = Content.Load<Texture2D>(Config.PlayerTexture);
                     }
-
-                    Console.WriteLine("£ACZE LISTY: " + players.ToString());
-                    players.ForEach(Console.WriteLine);
-                    //Host.instance.Stop();
                 }
             }
-            if (interf.ImAGuest) {
-                if (guest == null) {
+            else if (interf.StopHosting) {
+                Host.instance.Stop();
+                interf.StopHosting = false;
+            }
+
+            if (interf.Guesting) {
+                if (interf.InitializeGuest) {
                     Guest.instance.PlayerToSend = players.First();
-                    guest = Task.Factory.StartNew(() => Guest.instance.Start());
+                    Task.Factory.StartNew(() => Guest.instance.Start());
+                    interf.InitializeGuest = false;
                 }
                 else {
-                    if(Guest.instance.ServerIdentificationNumber != -1)
-                        players.First().ServerIdentificationNumber = Guest.instance.ServerIdentificationNumber;
+                    Console.WriteLine("NO GUEST DZIALA");
+                    players.First().ServerIdentificationNumber = Guest.instance.ServerIdentificationNumber;
                     Guest.instance.PlayerToSend = players.First();
                     Console.WriteLine(players.First().ToString());
                 }
             }
+            else if (interf.StopGuesting) {
+                Guest.instance.Stop();
+                interf.StopGuesting = false;
+            }
+
             if (interf.ToggleFullScreen)
                 gdm.ToggleFullScreen();
 
@@ -157,6 +165,7 @@ namespace GunsBullets {
                 }
                 else if (!player.ContinuousFire)
                     _fireIter = 0;
+
                 _cameraPosition = players[0].SpritePosition;
                 UpdateViewMatrix();
 

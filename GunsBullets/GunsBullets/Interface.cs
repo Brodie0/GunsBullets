@@ -8,38 +8,58 @@ using System.Threading.Tasks;
 
 namespace GunsBullets {
     class Interface {
-        bool _imAHost;
+        bool _hosting;
         bool _toggleFullScreen;
-        bool _imAGuest;
+        bool _guesting;
+        bool _stopHosting;
+        bool _initializeHost;
+        bool _stopGuesting;
+        bool _initializeGuest;
         KeyboardState _oldKeyboardState;
 
-        public bool ImAHost { get => _imAHost; set => _imAHost = value; }
-        public bool ToggleFullScreen { get => _toggleFullScreen; set => _toggleFullScreen = value; }
-        public bool ImAGuest { get => _imAGuest; set => _imAGuest = value; }
+        public bool? Hosting { get => _hosting; }
+        public bool ToggleFullScreen { get => _toggleFullScreen; }
+        public bool Guesting { get => _guesting; }
+        public bool StopHosting { get => _stopHosting; set => _stopHosting = value; }
+        public bool InitializeHost { get => _initializeHost; set => _initializeHost = value; }
+        public bool StopGuesting { get => _stopGuesting; set => _stopGuesting = value; }
+        public bool InitializeGuest { get => _initializeGuest; set => _initializeGuest = value; }
 
         public Interface() {
-            ImAHost = false;
-            ToggleFullScreen = false;
-            ImAGuest = false;
+            _hosting = false;
+            _toggleFullScreen = false;
+            _guesting = false;
         }
 
-        public void Update() {
+        public bool Update() {
+            bool ret = true;
             KeyboardState newKeyboardState = Keyboard.GetState();
             //interface features
             if (newKeyboardState.IsKeyDown(Keys.F))
-                ToggleFullScreen = !ToggleFullScreen;
+                _toggleFullScreen = !_toggleFullScreen;
+
             //multiplayer options
-            if (newKeyboardState.IsKeyDown(Keys.H) && _oldKeyboardState.IsKeyUp(Keys.H) && !ImAGuest) {
-                ImAHost = !ImAHost;
+            else if (newKeyboardState.IsKeyDown(Keys.H) && _oldKeyboardState.IsKeyUp(Keys.H) && !_guesting) {
+                if (_hosting)
+                    _stopHosting = true;
+                else
+                    _initializeHost = true;
+                _hosting = !_hosting;
+
             }
-            if (newKeyboardState.IsKeyDown(Keys.G) && _oldKeyboardState.IsKeyUp(Keys.G) && !ImAHost) {
-                ImAGuest = !ImAGuest;
+            else if (newKeyboardState.IsKeyDown(Keys.G) && _oldKeyboardState.IsKeyUp(Keys.G) && !_hosting) {
+                if (_guesting)
+                    _stopGuesting = true;
+                else
+                    _initializeGuest = true;
+                _guesting = !_guesting;
+
             }
-            //if(ImAHost)
-            //    Console.WriteLine("JESTEM HOSTEM!");
-            //if(ImAGuest)
-            //    Console.WriteLine("JESTEM GOSCIEM!");
+            else
+                ret = false;
             _oldKeyboardState = newKeyboardState;
+
+            return ret;
         }
     }
 }

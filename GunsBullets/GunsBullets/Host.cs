@@ -57,7 +57,7 @@ namespace GunsBullets {
             Player guest = null;
             while (true) {
                 Console.Write("Waiting for a connection... ");
-
+                //TODO this code adds one unnecessary guest (he's not moving, just texture displayed)
                 // Perform a blocking call to accept requests.
                 // You could also user server.AcceptSocket() here.
                 client = serverSocket.AcceptTcpClient();
@@ -65,28 +65,33 @@ namespace GunsBullets {
                 //if connection is established, server should send unique id number to every new guest, then every guest can be identitied
                 //and ovverided on server
                 NetworkStream stream = client.GetStream();
+
                 while (client!=null) {
                     Console.WriteLine("petla!");
                     guest = ReadPlayerData(ref client, ref stream);
                     Console.WriteLine("NUMER GOSCIA: " + guest.ServerIdentificationNumber);
                     bool newGuest = true;
-                    //there's second foreach loop in maingame (other thread) so its necessary to lock both
+                    //there's second foreach loop in maingame (in other thread) so its necessary to lock both
                     lock (guests) {
                         foreach (Player actualGuest in guests) {
                             if (actualGuest.ServerIdentificationNumber == guest.ServerIdentificationNumber) {
-                                guests[guest.ServerIdentificationNumber] = guest;
+                                guests[guest.ServerIdentificationNumber - 1] = guest;
                                 newGuest = false;
                                 break;
                             }
                         }
                     }
+                    //TODO consider monitors usage 
+                    Thread.Sleep(1);
                     if (newGuest && guests.Count < Config.MaxNumberOfPlayers) {
                         //give him a key here
                         guest.ServerIdentificationNumber = guests.Count + 1;
-                        WritePlayerKey(guest.ServerIdentificationNumber, ref stream);
                         //add guest to actual guests
                         guests.Add(guest);
+                        WritePlayerKey(guest.ServerIdentificationNumber, ref stream);
                     }
+                    Console.WriteLine("GOSCIE: " + guests.ToString());
+                    guests.ForEach(Console.WriteLine);
                     //Console.WriteLine(guests.First().ToString());
                     //Console.WriteLine("Guests Connected: " + guests.Count);
                 }

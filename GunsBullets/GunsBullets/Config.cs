@@ -36,7 +36,7 @@ namespace GunsBullets {
         public static short Port = 8888;
         public static string Localhost = "127.0.0.1";
         public static int MaxNumberOfPlayers = 4;
-        public static int SendingPackagesDelay = 10;
+        public static int SendingPackagesDelay = 5;
 
     }
 }

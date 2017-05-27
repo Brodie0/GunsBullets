@@ -16,9 +16,12 @@ namespace GunsBullets {
         private readonly SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
+        private int _shootersServerIdentificationNumber;
+
         public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
+        public int ShootersServerIdentificationNumber { get => _shootersServerIdentificationNumber; set => _shootersServerIdentificationNumber = value; }
 
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
@@ -43,7 +46,6 @@ namespace GunsBullets {
 
             _randGenerator = new Random();
         }
-
 
         public void UpdateBullet(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions, Texture2D wallTexture) {
 
@@ -94,7 +96,6 @@ namespace GunsBullets {
         public void DrawBullet(ref SpriteBatch spriteBatch) {
             spriteBatch.Draw(_bulletTexture, _spritePosition - _origin, Color.White);
         }
-
 
         private void RicochetOrDestruction(bool verticalWall, int border) {
             var rand = _randGenerator.Next(Config.RicochetProbability);
