@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Input;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Text;
+using System.Linq;
 
 //TODO przesłany player nie ma informacji o texturze
 namespace GunsBullets {
@@ -40,12 +42,13 @@ namespace GunsBullets {
         public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
         public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
         public Int32 ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
-        internal List<Bullet> MyBullets { get => _myBullets; set => _myBullets = value; }
+        public List<Bullet> MyBullets { get => _myBullets; set => _myBullets = value; }
 
         public void DecreaseAmmo() { _ammoAmount--; }
 
         public Player(ContentManager content) {
             PlayerTexture = content.Load<Texture2D>(Config.PlayerTexture);
+            _myBullets = new List<Bullet>();
             _origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
             _radiusOfBody = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
             DeathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
@@ -64,9 +67,11 @@ namespace GunsBullets {
             UpdateCollision(bullets);
         }
 
+
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
             spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
+
 
         private void UpdateKeyboard(ref Map map, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
             KeyboardState newKeyboardState = Keyboard.GetState();
@@ -132,34 +137,36 @@ namespace GunsBullets {
         }
 
         private void UpdateMouse(ref GraphicsDeviceManager graphics) {
-            var newMouseState = Mouse.GetState();
-            var newX = newMouseState.X + _spritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
-            var newY = newMouseState.Y + _spritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
+            if (IsMouseInsideWindow(graphics)) {
+                var newMouseState = Mouse.GetState();
+                var newX = newMouseState.X + _spritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
+                var newY = newMouseState.Y + _spritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
 
-            //rotation
-            var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(_spritePosition.X - newX) /
-                (Math.Sqrt(Math.Pow(_spritePosition.X - newX, 2.0) + Math.Pow(_spritePosition.Y - newY, 2.0)))));
-            if (newX > _spritePosition.X && newY < _spritePosition.Y)
-                _rotation = rotationTemp;
-            else if (newX > _spritePosition.X && newY > _spritePosition.Y)
-                _rotation = Convert.ToSingle(Math.PI) - rotationTemp;
-            else if (newX < _spritePosition.X && newY > _spritePosition.Y)
-                _rotation = Convert.ToSingle(2 * Math.PI) - (Convert.ToSingle(Math.PI) - rotationTemp);
-            else if (newX < _spritePosition.X && newY < _spritePosition.Y)
-                _rotation = Convert.ToSingle(2 * Math.PI) - rotationTemp;
+                //rotation
+                var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(_spritePosition.X - newX) /
+                    (Math.Sqrt(Math.Pow(_spritePosition.X - newX, 2.0) + Math.Pow(_spritePosition.Y - newY, 2.0)))));
+                if (newX > _spritePosition.X && newY < _spritePosition.Y)
+                    _rotation = rotationTemp;
+                else if (newX > _spritePosition.X && newY > _spritePosition.Y)
+                    _rotation = Convert.ToSingle(Math.PI) - rotationTemp;
+                else if (newX < _spritePosition.X && newY > _spritePosition.Y)
+                    _rotation = Convert.ToSingle(2 * Math.PI) - (Convert.ToSingle(Math.PI) - rotationTemp);
+                else if (newX < _spritePosition.X && newY < _spritePosition.Y)
+                    _rotation = Convert.ToSingle(2 * Math.PI) - rotationTemp;
 
-            //fire
-            if (newMouseState.LeftButton == ButtonState.Pressed && IsMouseInsideWindow(graphics) && _ammoAmount > 0) {
-                if (_oldMouseState.LeftButton == ButtonState.Released)
-                    _singleShot = true;
-                else
-                    _continuousFire = true;
-            } else {
-                _singleShot = false;
-                _continuousFire = false;
+                //fire
+                if (newMouseState.LeftButton == ButtonState.Pressed && _ammoAmount > 0) {
+                    if (_oldMouseState.LeftButton == ButtonState.Released)
+                        _singleShot = true;
+                    else
+                        _continuousFire = true;
+                }
+                else {
+                    _singleShot = false;
+                    _continuousFire = false;
+                }
+                _oldMouseState = newMouseState;
             }
-
-            _oldMouseState = newMouseState;
         }
 
         bool IsMouseInsideWindow(GraphicsDeviceManager graphics) {
@@ -209,8 +216,8 @@ namespace GunsBullets {
             string s1 = _origin.ToString();
             string s2 = _spritePosition.ToString();
             string s3 = _spriteSpeed.ToString();
-
-            return "\nUniqueKey: "+ serverIdentificationNumber + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
+            string bullets = string.Join("\nBullet: ", _myBullets.Select(x => x.ToString()).ToArray());
+            return "\nUniqueKey: " + serverIdentificationNumber + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
                 "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: " + _destroyMe+ "\n";
         }
     }

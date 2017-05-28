@@ -21,12 +21,12 @@ namespace GunsBullets {
         public Matrix viewMatrix;
 
         private List<Player> players;
-        private List<Bullet> bullets;
+        private List<Bullet> allBullets;
         private int _fireIter;
         private Map map;
         private Interface interf;
         private bool ifPressReload;
-
+        private int temp = 0;
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -39,8 +39,8 @@ namespace GunsBullets {
         /// and initialize them as well.
         /// </summary>
         protected override void Initialize() {
-            players = new List<Player>(Config.MaxNumberOfPlayers);
-            bullets = new List<Bullet>();
+            players = new List<Player>(Config.MaxNumberOfGuests);
+            allBullets = new List<Bullet>();
             ifPressReload = false;
             _fireIter = 0;
             IsMouseVisible = true;
@@ -75,7 +75,7 @@ namespace GunsBullets {
         protected override void UnloadContent() {
             spriteBatch.Dispose();
             players.Clear();
-            bullets.Clear();
+            allBullets.Clear();
         }
 
         /// <summary>
@@ -91,13 +91,12 @@ namespace GunsBullets {
                 //or just other ideas for checking
                 if (interf.InitializeHost) {
                     Host.instance.Start();
-                    for (int i = 0; i < Config.MaxNumberOfPlayers; i++) {
+                    for (int i = 0; i < Config.MaxNumberOfGuests; i++) {
                         Task.Factory.StartNew(() => Host.instance.AddNewListeningThread());
                     }
                     interf.InitializeHost = false;
                 }
                 else if (Host.instance.Guests.Count != 0) {
-                    Console.WriteLine("NO HOST TEZ");
                     if (players.Count > 1)
                         players.RemoveRange(1, players.Count - 1);
                     lock (Host.instance.Guests) {
@@ -106,6 +105,12 @@ namespace GunsBullets {
                     foreach (Player player in players) {
                         player.DeathScream = Content.Load<SoundEffect>(Config.Sound_DeathScream);
                         player.PlayerTexture = Content.Load<Texture2D>(Config.PlayerTexture);
+                        foreach (Bullet bullet in player.MyBullets) {
+                            bullet.BulletTexture = Content.Load<Texture2D>(Config.BulletTexture);
+                            bullet.RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
+                            bullet.RicochetSounds[0] = Content.Load<SoundEffect>(Config.Sound_Ricochet1);
+                            bullet.RicochetSounds[1] = Content.Load<SoundEffect>(Config.Sound_Ricochet2);
+                        }
                     }
                 }
             }
@@ -121,10 +126,10 @@ namespace GunsBullets {
                     interf.InitializeGuest = false;
                 }
                 else {
-                    Console.WriteLine("NO GUEST DZIALA");
                     players.First().ServerIdentificationNumber = Guest.instance.ServerIdentificationNumber;
-                    Guest.instance.PlayerToSend = players.First();
-                    Console.WriteLine(players.First().ToString());
+                    lock(Guest.instance.PlayerToSend){
+                        Guest.instance.PlayerToSend = players.First();
+                    }
                 }
             }
             else if (interf.StopGuesting) {
@@ -135,45 +140,49 @@ namespace GunsBullets {
             if (interf.ToggleFullScreen)
                 gdm.ToggleFullScreen();
 
+
+                Player player1 = players.First();
+                player1.UpdatePlayer(ref gdm, ref map, ref allBullets, map.WallPositions, map.WallTexture);
+                if (player1.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
+                    ifPressReload = true;
+                    player1.AmmoReload(Content);
+                }
+                if (player1.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
+                    ifPressReload = false;
             //update only if window is focused
             if (IsActive) {
-                Player player = players.First();
-                player.UpdatePlayer(ref gdm, ref map, ref bullets, map.WallPositions, map.WallTexture);
-                if (player.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
-                    ifPressReload = true;
-                    player.AmmoReload(Content);
-                }
-                if (player.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
-                    ifPressReload = false;
-
-                if (player.ContinuousFire) {
+                //shooting
+                if (player1.ContinuousFire) {
                     if (_fireIter == Config.FireRate) {
-                        var bullet = new Bullet(ref gdm, Content, player.SpritePosition, player.Rotation,
-                            player.OldMouseState, player.Origin);
-                        player.DecreaseAmmo();
-                        bullets.Add(bullet);
+                        var bullet = new Bullet(ref gdm, Content, player1.SpritePosition, player1.Rotation,
+                            player1.OldMouseState, player1.Origin);
+                        player1.DecreaseAmmo();
+                        player1.MyBullets.Add(bullet);
                         _fireIter = 0;
                     }
                     else
                         _fireIter++;
                 }
-                else if (player.SingleShot) {
-                    var bullet = new Bullet(ref gdm, Content, player.SpritePosition, player.Rotation,
-                        player.OldMouseState, player.Origin);
-                    player.DecreaseAmmo();
-                    bullets.Add(bullet);
+                else if (player1.SingleShot) {
+                    var bullet = new Bullet(ref gdm, Content, player1.SpritePosition, player1.Rotation,
+                        player1.OldMouseState, player1.Origin);
+                    player1.DecreaseAmmo();
+                    player1.MyBullets.Add(bullet);
                 }
-                else if (!player.ContinuousFire)
+                else if (!player1.ContinuousFire)
                     _fireIter = 0;
 
                 _cameraPosition = players[0].SpritePosition;
                 UpdateViewMatrix();
-
-                players.RemoveAll(player1 => player1.DestroyMe);
-                bullets.RemoveAll(bullet => bullet.DestroyMe);
-                foreach (var bullet in bullets) {
-                    bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
-                }
+            }
+            players.RemoveAll(p => p.DestroyMe);
+            player1.MyBullets.RemoveAll(bullet => bullet.DestroyMe);
+            allBullets.Clear();
+            foreach (Player p in players) {
+                allBullets = allBullets.Concat(p.MyBullets).ToList();
+            }
+            foreach (var bullet in allBullets) {
+                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
             }
             base.Update(gameTime);
         }
@@ -190,7 +199,7 @@ namespace GunsBullets {
                 spriteBatch.DrawString(Content.Load<SpriteFont>("font"), "TEKST JAKIS", new Vector2(-300, 0), Color.White);
 
                 foreach (var player in players) player.DrawPlayer(ref spriteBatch);
-                foreach (var bullet in bullets) bullet.DrawBullet(ref spriteBatch);
+                foreach (var bullet in allBullets) bullet.DrawBullet(ref spriteBatch);
             } spriteBatch.End();
             base.Draw(gameTime);
         }

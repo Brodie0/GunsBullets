@@ -26,7 +26,7 @@ namespace GunsBullets {
             serverEndPoint = new IPEndPoint(IPAddress.Loopback, Config.Port);
             serverSocket = new TcpListener(serverEndPoint);
             client = null;
-            guests = new List<Player>(Config.MaxNumberOfPlayers);
+            guests = new List<Player>(Config.MaxNumberOfGuests);
         }
 
         public void Start() {
@@ -44,7 +44,7 @@ namespace GunsBullets {
         public void AddNewListeningThread() {
             try {
                 ParallelOptions p = new ParallelOptions();
-                p.MaxDegreeOfParallelism = Config.MaxNumberOfPlayers;
+                p.MaxDegreeOfParallelism = Config.MaxNumberOfGuests;
                 using (Task listeningTask = Task.Factory.StartNew(() => Listen()))
                     listeningTask.Start();
             }
@@ -57,19 +57,14 @@ namespace GunsBullets {
             Player guest = null;
             while (true) {
                 Console.Write("Waiting for a connection... ");
-                //TODO this code adds one unnecessary guest (he's not moving, just texture displayed)
                 // Perform a blocking call to accept requests.
                 // You could also user server.AcceptSocket() here.
                 client = serverSocket.AcceptTcpClient();
                 Console.WriteLine("Connected!");
-                //if connection is established, server should send unique id number to every new guest, then every guest can be identitied
-                //and ovverided on server
                 NetworkStream stream = client.GetStream();
 
                 while (client!=null) {
-                    Console.WriteLine("petla!");
                     guest = ReadPlayerData(ref client, ref stream);
-                    Console.WriteLine("NUMER GOSCIA: " + guest.ServerIdentificationNumber);
                     bool newGuest = true;
                     //there's second foreach loop in maingame (in other thread) so its necessary to lock both
                     lock (guests) {
@@ -83,17 +78,13 @@ namespace GunsBullets {
                     }
                     //TODO consider monitors usage 
                     Thread.Sleep(1);
-                    if (newGuest && guests.Count < Config.MaxNumberOfPlayers) {
+                    if (newGuest && guests.Count < Config.MaxNumberOfGuests) {
                         //give him a key here
                         guest.ServerIdentificationNumber = guests.Count + 1;
                         //add guest to actual guests
                         guests.Add(guest);
                         WritePlayerKey(guest.ServerIdentificationNumber, ref stream);
                     }
-                    Console.WriteLine("GOSCIE: " + guests.ToString());
-                    guests.ForEach(Console.WriteLine);
-                    //Console.WriteLine(guests.First().ToString());
-                    //Console.WriteLine("Guests Connected: " + guests.Count);
                 }
             }
         }

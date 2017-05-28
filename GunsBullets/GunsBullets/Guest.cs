@@ -36,13 +36,13 @@ namespace GunsBullets {
         public void Start() {
             try {
                 Byte[] data;
-
                 // Get a client stream for reading and writing.
                 using (NetworkStream stream = LookForHost()) {
-                    // Send the message to the connected TcpServer. 
-                    data = ObjectToByteArray(_playerToSend);
+                    // Send the message to the connected TcpServer.
+                    lock (_playerToSend) {
+                        data = ObjectToByteArray(_playerToSend);
+                    }               
                     stream.Write(data, 0, data.Length);
-                    Console.WriteLine("WYSYŁAM JAKIS SZIT");
 
                     //get unique key from host
                     data = new Byte[sizeof(Int32)];
@@ -55,7 +55,6 @@ namespace GunsBullets {
                         _playerToSend.ServerIdentificationNumber = serverIdentificationNumber;
                         data = ObjectToByteArray(_playerToSend);
                         stream.Write(data, 0, data.Length);
-                        Console.WriteLine("WYSYŁAM JAKIS SZIT");
                     }
                 }
             }

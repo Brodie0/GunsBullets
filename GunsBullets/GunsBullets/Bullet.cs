@@ -7,13 +7,14 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
 namespace GunsBullets {
+    [Serializable]
     class Bullet {
-        private readonly Texture2D _bulletTexture;
+        [NonSerialized] private Texture2D _bulletTexture;
         private readonly Vector2 _origin;
         private Vector2 _spritePosition;
         private Vector2 _spritePositionPrev;
         private Vector2 _spriteSpeed;
-        private readonly SoundEffect[] _ricochetSounds;
+        [NonSerialized] private SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
         private int _shootersServerIdentificationNumber;
@@ -22,6 +23,8 @@ namespace GunsBullets {
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
         public int ShootersServerIdentificationNumber { get => _shootersServerIdentificationNumber; set => _shootersServerIdentificationNumber = value; }
+        public Texture2D BulletTexture { get => _bulletTexture; set => _bulletTexture = value; }
+        public SoundEffect[] RicochetSounds { get => _ricochetSounds; set => _ricochetSounds = value; }
 
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
@@ -111,6 +114,13 @@ namespace GunsBullets {
                 _spritePosition.Y = border;
             else
                 _spritePosition.X = border;
+        }
+
+        public override string ToString() {
+            string s1 = _origin.ToString();
+            string s2 = _spritePosition.ToString();
+            string s3 = _spriteSpeed.ToString();
+            return "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + "\nDestroyMe: " + DestroyMe + "\n";
         }
     }
 }
