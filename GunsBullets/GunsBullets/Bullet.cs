@@ -7,18 +7,24 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
 namespace GunsBullets {
+    [Serializable]
     class Bullet {
-        private readonly Texture2D _bulletTexture;
+        [NonSerialized] private Texture2D _bulletTexture;
         private readonly Vector2 _origin;
         private Vector2 _spritePosition;
         private Vector2 _spritePositionPrev;
         private Vector2 _spriteSpeed;
-        private readonly SoundEffect[] _ricochetSounds;
+        [NonSerialized] private SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
+        private int _shootersServerIdentificationNumber;
+
         public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
+        public int ShootersServerIdentificationNumber { get => _shootersServerIdentificationNumber; set => _shootersServerIdentificationNumber = value; }
+        public Texture2D BulletTexture { get => _bulletTexture; set => _bulletTexture = value; }
+        public SoundEffect[] RicochetSounds { get => _ricochetSounds; set => _ricochetSounds = value; }
 
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
@@ -44,7 +50,6 @@ namespace GunsBullets {
             _randGenerator = new Random();
         }
 
-
         public void UpdateBullet(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions, Texture2D wallTexture) {
 
             _spritePosition += _spriteSpeed;
@@ -53,20 +58,28 @@ namespace GunsBullets {
             var maxY = map._mapTexture.Height - _bulletTexture.Height;
             const int minY = 0;
 
-            //ricochete of walls
+            //ricochete off walls
             foreach (var wallPosition in wallPositions) {
 
-                if (!(wallPosition.X > _spritePosition.X + _bulletTexture.Width || _spritePosition.X > wallPosition.X + wallTexture.Width ||
-                    wallPosition.Y > _spritePosition.Y + _bulletTexture.Height || _spritePosition.Y > wallPosition.Y + wallTexture.Height)) {
-                    if (((_spritePosition.X > wallPosition.X && _spritePosition.X < wallPosition.X + wallTexture.Width) &&
-                       (_spritePosition.Y > wallPosition.Y && _spritePosition.Y < wallPosition.Y + wallTexture.Height)) ||
-                       ((_spritePosition.X + _bulletTexture.Width > wallPosition.X && _spritePosition.X + _bulletTexture.Width < wallPosition.X + wallTexture.Width) &&
-                       (_spritePosition.Y + _bulletTexture.Height > wallPosition.Y && _spritePosition.Y + _bulletTexture.Height < wallPosition.Y + wallTexture.Height))) {
-                            if(_spritePositionPrev.X <= wallPosition.X || _spritePositionPrev.X >= wallPosition.X + wallTexture.Width)
-                                RicochetOrDestruction(true, (int)_spritePositionPrev.X);
-                        if (_spritePositionPrev.Y <= wallPosition.Y || _spritePositionPrev.Y >= wallPosition.Y + wallTexture.Height)
-                            RicochetOrDestruction(false, (int)_spritePositionPrev.Y);
-                    }                 
+                var b = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _bulletTexture.Height / 2);
+                var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
+
+                if (Collisions.Intersects(b, r)) {
+                    double wy = (b.Radius + r.Height / 2) * (b.Center.Y - r.Center.Y);
+                    double hx = (b.Radius + r.Width / 2) * (b.Center.X - r.Center.X);
+                    if (wy > hx) {
+                        if (wy > -hx && _spriteSpeed.Y < 0)
+                            RicochetOrDestruction(false, (int)wallPosition.Y + wallTexture.Height + (int)_bulletTexture.Height/2);
+                        else if (wy <= -hx && _spriteSpeed.X > 0)
+                            RicochetOrDestruction(true, (int)wallPosition.X - (int)_bulletTexture.Width/2);
+                    }
+                    else {
+                        if (wy > -hx && _spriteSpeed.X < 0)
+                            RicochetOrDestruction(true, (int)wallPosition.X + wallTexture.Width + (int)_bulletTexture.Width/2);
+                        else if (wy <= -hx && _spriteSpeed.Y > 0) {
+                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)_bulletTexture.Height/2);
+                        }
+                    }
                 }
             }
 
@@ -87,23 +100,27 @@ namespace GunsBullets {
             spriteBatch.Draw(_bulletTexture, _spritePosition - _origin, Color.White);
         }
 
-
-        private void RicochetOrDestruction(bool verticalWall, int border = -1) {
+        private void RicochetOrDestruction(bool verticalWall, int border) {
             var rand = _randGenerator.Next(Config.RicochetProbability);
             if (rand == 0) {
 
                 _spriteSpeed.X *= verticalWall ? -1 : 1;
                 _spriteSpeed.Y *= verticalWall ? 1 : -1;
-                if (border != -1) {
-                    if (!verticalWall)
-                        _spritePosition.Y = border;
-                    else _spritePosition.X = border;
-
-                }
                 _ricochetSounds[_randGenerator.Next(Config.RicochetesSoundsAmount)].Play();
             } else {
                 DestroyMe = true;
             }
+            if (!verticalWall)
+                _spritePosition.Y = border;
+            else
+                _spritePosition.X = border;
+        }
+
+        public override string ToString() {
+            string s1 = _origin.ToString();
+            string s2 = _spritePosition.ToString();
+            string s3 = _spriteSpeed.ToString();
+            return "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + "\nDestroyMe: " + DestroyMe + "\n";
         }
     }
 }
