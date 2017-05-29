@@ -4,7 +4,7 @@ namespace GunsBullets {
     static class Program {
         static void Main(string[] args) {
             try {
-                using (MainGame game = new MainGame()) {
+                using (MainGame game = new MainGame(args)) {
                     game.Run();
                 }
             }

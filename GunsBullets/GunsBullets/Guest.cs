@@ -1,11 +1,10 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework.Audio;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Threading;
 
 namespace GunsBullets {
@@ -15,8 +14,11 @@ namespace GunsBullets {
         IPEndPoint serverEndPoint;
         private volatile Player _playerToSend;
         private Int32 serverIdentificationNumber;
-        public Player PlayerToSend { get => _playerToSend; set => _playerToSend = value; }
-        public int ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
+        private ContentManager _content;
+        private List<Player> _otherPlayers;
+        private List<Player> _allPlayers;
+
+        internal Player PlayerToSend { get => _playerToSend; set => _playerToSend = value; }
 
         private Guest() {
             // Create a TcpClient.
@@ -26,6 +28,13 @@ namespace GunsBullets {
             serverEndPoint = new IPEndPoint(IPAddress.Loopback, Config.Port);
             clientSocket = new TcpClient();
             serverIdentificationNumber = -1;
+            _otherPlayers = new List<Player>(Config.MaxNumberOfGuests);
+        }
+
+        public void Start(List<Player> allPlayers, ContentManager content) {
+            _allPlayers = allPlayers;
+            _content = content;
+            _playerToSend = allPlayers[0];
         }
 
         public void Stop() {
@@ -33,14 +42,14 @@ namespace GunsBullets {
             Console.WriteLine("Guest finished working");
         }
 
-        public void Start() {
+        public void StartCommunicationThread() {
             try {
                 Byte[] data;
                 // Get a client stream for reading and writing.
                 using (NetworkStream stream = LookForHost()) {
                     // Send the message to the connected TcpServer.
                     lock (_playerToSend) {
-                        data = ObjectToByteArray(_playerToSend);
+                        data = Serialization.ObjectToByteArray(_playerToSend);
                     }               
                     stream.Write(data, 0, data.Length);
 
@@ -50,11 +59,14 @@ namespace GunsBullets {
                     serverIdentificationNumber = BitConverter.ToInt32(data, 0);
                     Console.WriteLine("Received unique key: {0}", serverIdentificationNumber);
 
+                    _playerToSend.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[serverIdentificationNumber]);
                     while (true) {
-                        Thread.Sleep(Config.SendingPackagesDelay);
                         _playerToSend.ServerIdentificationNumber = serverIdentificationNumber;
-                        data = ObjectToByteArray(_playerToSend);
+                        data = Serialization.ObjectToByteArray(_playerToSend);
                         stream.Write(data, 0, data.Length);
+
+                        GetListOfOtherPlayerFromHost(stream);
+                        Thread.Sleep(Config.SendingPackagesDelay);
                     }
                 }
             }
@@ -66,7 +78,7 @@ namespace GunsBullets {
             }
         }
 
-        public NetworkStream LookForHost() {
+        private NetworkStream LookForHost() {
             NetworkStream stream = null;
             try {
                 clientSocket.Connect(serverEndPoint);
@@ -78,13 +90,28 @@ namespace GunsBullets {
             return stream;
         }
 
-        Byte[] ObjectToByteArray(object obj) {
-            if (obj == null)
-                return null;
-            BinaryFormatter bf = new BinaryFormatter();
-            using (MemoryStream ms = new MemoryStream()) {
-                bf.Serialize(ms, obj);
-                return ms.ToArray();
+        private void GetListOfOtherPlayerFromHost(NetworkStream stream) {
+            _otherPlayers = Serialization.ReadListOfPlayersData(stream);
+            Console.WriteLine("                      L I S T A:                 \n");
+            _otherPlayers.ForEach(Console.WriteLine);
+            foreach (Player player in _otherPlayers) {
+                player.DeathScream = _content.Load<SoundEffect>(Config.Sound_DeathScream);
+                player.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[player.ServerIdentificationNumber]);
+                foreach (Bullet bullet in player.MyBullets) {
+                    bullet.BulletTexture = _content.Load<Texture2D>(Config.BulletTexture);
+                    bullet.RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
+                    bullet.RicochetSounds[0] = _content.Load<SoundEffect>(Config.Sound_Ricochet1);
+                    bullet.RicochetSounds[1] = _content.Load<SoundEffect>(Config.Sound_Ricochet2);
+                }
+            }
+            AddOrRefreshPlayers();
+        }
+
+        private void AddOrRefreshPlayers() {
+            lock (_allPlayers) {
+                if (_allPlayers.Count > 1)
+                    _allPlayers.RemoveRange(1, _allPlayers.Count - 1);
+                _allPlayers.AddRange(_otherPlayers);
             }
         }
     }

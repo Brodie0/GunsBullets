@@ -3,6 +3,8 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,7 +37,7 @@ namespace GunsBullets {
             bool ret = true;
             KeyboardState newKeyboardState = Keyboard.GetState();
             //interface features
-            if (newKeyboardState.IsKeyDown(Keys.F))
+            if (newKeyboardState.IsKeyDown(Keys.F) && _oldKeyboardState.IsKeyUp(Keys.F))
                 _toggleFullScreen = !_toggleFullScreen;
 
             //multiplayer options
@@ -60,6 +62,16 @@ namespace GunsBullets {
             _oldKeyboardState = newKeyboardState;
 
             return ret;
+        }
+
+        public static string GetLocalIPAddress() {
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList) {
+                if (ip.AddressFamily == AddressFamily.InterNetwork) {
+                    return ip.ToString();
+                }
+            }
+            throw new Exception("Local IP Address Not Found!");
         }
     }
 }

@@ -28,7 +28,6 @@ namespace GunsBullets {
         [NonSerialized] private bool _singleShot;
         private readonly float _radiusOfBody;
         [NonSerialized] private SoundEffect _deathScream;
-        private readonly bool _destroyMe;
         private int _ammoAmount;
         private int _deathsAmount;
 
@@ -38,7 +37,6 @@ namespace GunsBullets {
         public float Rotation => _rotation;
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
-        public bool DestroyMe => _destroyMe;
         public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
         public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
         public Int32 ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
@@ -47,16 +45,15 @@ namespace GunsBullets {
         public void DecreaseAmmo() { _ammoAmount--; }
 
         public Player(ContentManager content) {
-            PlayerTexture = content.Load<Texture2D>(Config.PlayerTexture);
+            _playerTexture = content.Load<Texture2D>(Config.PlayerTexture[0]);
             _myBullets = new List<Bullet>();
-            _origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
-            _radiusOfBody = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
+            _origin = new Vector2(_playerTexture.Width / 2.0f, _playerTexture.Height / 2.0f);
+            _radiusOfBody = (_playerTexture.Width / 2.0f + _playerTexture.Height / 2.0f) / 2.0f;
             DeathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
             _spritePosition = Vector2.Zero;
             _spriteSpeed = Vector2.Zero;
             _continuousFire = false;
             _singleShot = false;
-            _destroyMe = false;
             _ammoAmount = Config.MaxAmmoAmount;
             _deathsAmount = 0;
         }
@@ -69,7 +66,7 @@ namespace GunsBullets {
 
 
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(_playerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
 
@@ -93,9 +90,9 @@ namespace GunsBullets {
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
                 _spriteSpeed.X = 0.0f;
 
-            var maxX = map._mapTexture.Width - PlayerTexture.Width;
+            var maxX = map._mapTexture.Width - _playerTexture.Width;
             const int minX = 0;
-            var maxY = map._mapTexture.Height - PlayerTexture.Height;
+            var maxY = map._mapTexture.Height - _playerTexture.Height;
             const int minY = 0;
 
             // borders collision
@@ -111,7 +108,7 @@ namespace GunsBullets {
 
             //wall collision
             foreach (var wallPosition in wallPositions) {
-                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), PlayerTexture.Height / 2);
+                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _playerTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
                 if (Collisions.Intersects(p, r)) {
@@ -137,8 +134,8 @@ namespace GunsBullets {
         }
 
         private void UpdateMouse(ref GraphicsDeviceManager graphics) {
-            if (IsMouseInsideWindow(graphics)) {
-                var newMouseState = Mouse.GetState();
+            var newMouseState = Mouse.GetState();
+            if (IsMouseInsideWindow(graphics, newMouseState)) {
                 var newX = newMouseState.X + _spritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
                 var newY = newMouseState.Y + _spritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
 
@@ -169,14 +166,13 @@ namespace GunsBullets {
             }
         }
 
-        bool IsMouseInsideWindow(GraphicsDeviceManager graphics) {
-            MouseState ms = Mouse.GetState();
+        bool IsMouseInsideWindow(GraphicsDeviceManager graphics, MouseState ms) {
             Point pos = new Point(ms.X, ms.Y);
             return graphics.GraphicsDevice.Viewport.Bounds.Contains(pos);
         }
 
-        private void UpdateCollision(IEnumerable<Bullet> bullets) {
-            // distance between player's and bullet's centres
+        private void UpdateCollision(List<Bullet> bullets) {
+            //distance between player's and bullet's centres
             foreach (var bullet in bullets) {
                 var distance = Convert.ToSingle(
                     Math.Sqrt(Math.Pow(bullet.SpritePosition.X - _spritePosition.X - _origin.X, 2) +
@@ -209,7 +205,6 @@ namespace GunsBullets {
             Thread.Sleep(200);
             _spritePosition = Vector2.Zero;
             _ammoAmount = Config.MaxAmmoAmount;
-            //_destroyMe = true;
         }
 
         public override string ToString() {
@@ -218,7 +213,7 @@ namespace GunsBullets {
             string s3 = _spriteSpeed.ToString();
             string bullets = string.Join("\nBullet: ", _myBullets.Select(x => x.ToString()).ToArray());
             return "\nUniqueKey: " + serverIdentificationNumber + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
-                "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: " + _destroyMe+ "\n";
+                "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: ";
         }
     }
 }

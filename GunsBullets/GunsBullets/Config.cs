@@ -8,7 +8,7 @@ namespace GunsBullets {
     class Config {
         public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
         //textures
-        public static string PlayerTexture = "uberSoldier";
+        public static string[] PlayerTexture = { "uberSoldier1", "uberSoldier2", "uberSoldier3", "uberSoldier4" };
         public static string BulletTexture = "bullet1";
         public static string MapTexture = "map2";
         public static string WallTexture = "wall";
@@ -35,7 +35,8 @@ namespace GunsBullets {
         public static short SpacesForEachSignInTxtMap = 2;
         public static short Port = 8888;
         public static string Localhost = "127.0.0.1";
-        public static int MaxNumberOfGuests = 1;
+        public static int MaxNumberOfPlayers = 4;
+        public static int MaxNumberOfGuests = MaxNumberOfPlayers - 1;
         public static int SendingPackagesDelay = 5;
 
     }
