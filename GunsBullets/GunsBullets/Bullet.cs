@@ -15,14 +15,18 @@ namespace GunsBullets {
         private Vector2 _spriteSpeed;
         private readonly float _radius;
         private readonly Random _randGenerator;
+        //fields needed for serialization (binaryFormatter serializes only fields, we need those fields on server)
+        [NonSerialized] private Texture2D _bulletTexture;
+        [NonSerialized] private SoundEffect[] _ricochetSounds;
+        private int _shootersServerIdentificationNumber;
+        private bool _destroyMe;
 
-        public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
-
-        public int ShootersServerIdentificationNumber { get; set; }
-        public Texture2D BulletTexture { get; set; }
-        public SoundEffect[] RicochetSounds { get; set; }
+        public Texture2D BulletTexture { get => _bulletTexture; set => _bulletTexture = value; }
+        public SoundEffect[] RicochetSounds { get => _ricochetSounds; set => _ricochetSounds = value; }
+        public int ShootersServerIdentificationNumber { get => _shootersServerIdentificationNumber; set => _shootersServerIdentificationNumber = value; }
+        public bool DestroyMe { get => _destroyMe; set => _destroyMe = value; }
 
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;

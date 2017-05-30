@@ -6,9 +6,7 @@ using System.Text;
 
 namespace GunsBullets {
     class Config {
-        // TODO: Remove this wherever it's used - used to load map data etc, will
-        // break once the project is built and released without the source code!
-        public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
+        public static string ContentPath = "Content";
 
         //textures
         public static string[] PlayerTexture = { "uberSoldier1", "uberSoldier2", "uberSoldier3", "uberSoldier4" };
@@ -16,7 +14,7 @@ namespace GunsBullets {
         public static string MapTexture = "map2";
         public static string WallTexture = "wall";
         public static string AmmoTexture = "ammo";
-        public static string WallAndAmmoPositions = "mapa.txt";
+        public static string WallAndAmmoPositions = "\\mapa";
         //sounds
         public static string Sound_Shot = "m4a1single";
         public static string Sound_Reload = "gunreload";

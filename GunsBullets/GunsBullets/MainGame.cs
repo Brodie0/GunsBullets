@@ -30,7 +30,7 @@ namespace GunsBullets {
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
-            Content.RootDirectory = "Content";
+            Content.RootDirectory = Config.ContentPath;
         }
       
         /// <summary>
