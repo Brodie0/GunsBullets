@@ -6,7 +6,10 @@ using System.Text;
 
 namespace GunsBullets {
     class Config {
+        // TODO: Remove this wherever it's used - used to load map data etc, will
+        // break once the project is built and released without the source code!
         public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
+
         //textures
         public static string[] PlayerTexture = { "uberSoldier1", "uberSoldier2", "uberSoldier3", "uberSoldier4" };
         public static string BulletTexture = "bullet1";
@@ -33,11 +36,15 @@ namespace GunsBullets {
         public static char WallSignInTxtMap = '1';
         public static char AmmoSignInTxtMap = '2';
         public static short SpacesForEachSignInTxtMap = 2;
-        public static short Port = 8888;
-        public static string Localhost = "127.0.0.1";
         public static int MaxNumberOfPlayers = 4;
         public static int MaxNumberOfGuests = MaxNumberOfPlayers - 1;
         public static int SendingPackagesDelay = 5;
 
+        // These settings can be changed with the GameConfigurator:
+        public static string IPHostname = "127.0.0.1";
+        public static short Port = 8888;
+        public static bool HostGame = false;
+        public static bool DebugMode = true;
+        public static bool FullScreen = false;
     }
 }

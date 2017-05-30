@@ -27,11 +27,10 @@ namespace GunsBullets {
         private Map map;
         private Interface interf;
         private bool ifPressReload;
-        public MainGame(string[] args) {
+
+        public MainGame() {
             gdm = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-
-            //IPAddress.Parse(args[1]);
         }
       
         /// <summary>
@@ -47,6 +46,12 @@ namespace GunsBullets {
             _fireIter = 0;
             IsMouseVisible = true;
             base.Initialize();
+
+            try {
+                Window.Title = string.Format("[{0}] GunsBullets", Interface.GetLocalIPAddress());
+            } catch {
+                Window.Title = "[UNKNOWN!] GunsBullets";
+            }
         }
 
         private void UpdateViewMatrix()
@@ -186,14 +191,8 @@ namespace GunsBullets {
             // Draw the sprite. (This isn't a language construct!)
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {
                 map.DrawMap(ref spriteBatch);
-                lock (Content) {
-                    spriteBatch.DrawString(Content.Load<SpriteFont>("font"), "Guns N' Bullets", new Vector2(-300, 0), Color.White);
-                    spriteBatch.DrawString(Content.Load<SpriteFont>("font"), "IP: " + Interface.GetLocalIPAddress(), new Vector2(-300, 50), Color.White);
-                }
-                lock (players)
-                    foreach (var player in players) player.DrawPlayer(ref spriteBatch);
-                lock(allBullets)
-                    foreach (var bullet in allBullets) bullet.DrawBullet(ref spriteBatch);
+                lock (players) foreach (var player in players) player.DrawPlayer(ref spriteBatch);
+                lock (allBullets) foreach (var bullet in allBullets) bullet.DrawBullet(ref spriteBatch);
             } spriteBatch.End();
             base.Draw(gameTime);
         }

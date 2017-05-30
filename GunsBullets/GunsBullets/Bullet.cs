@@ -9,29 +9,27 @@ using Microsoft.Xna.Framework.Input;
 namespace GunsBullets {
     [Serializable]
     class Bullet {
-        [NonSerialized] private Texture2D _bulletTexture;
         private readonly Vector2 _origin;
         private Vector2 _spritePosition;
         private Vector2 _spritePositionPrev;
         private Vector2 _spriteSpeed;
-        [NonSerialized] private SoundEffect[] _ricochetSounds;
         private readonly float _radius;
         private readonly Random _randGenerator;
-        private int _shootersServerIdentificationNumber;
 
         public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
         public float Radius => _radius;
-        public int ShootersServerIdentificationNumber { get => _shootersServerIdentificationNumber; set => _shootersServerIdentificationNumber = value; }
-        public Texture2D BulletTexture { get => _bulletTexture; set => _bulletTexture = value; }
-        public SoundEffect[] RicochetSounds { get => _ricochetSounds; set => _ricochetSounds = value; }
+
+        public int ShootersServerIdentificationNumber { get; set; }
+        public Texture2D BulletTexture { get; set; }
+        public SoundEffect[] RicochetSounds { get; set; }
 
         public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
             var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
             var newY = Mouse.GetState().Y + playerPosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
             playerRotation -= Convert.ToSingle(Math.PI / 2.5);
-            _bulletTexture = content.Load<Texture2D>(Config.BulletTexture);
-            _origin = new Vector2(_bulletTexture.Width / 2.0f, _bulletTexture.Height / 2.0f);
+            BulletTexture = content.Load<Texture2D>(Config.BulletTexture);
+            _origin = new Vector2(BulletTexture.Width / 2.0f, BulletTexture.Height / 2.0f);
             _spritePosition = new Vector2(Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Cos(playerRotation) + playerPosition.X + playerOrigin.X),
                 Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Sin(playerRotation) + playerPosition.Y + playerOrigin.Y));
             _spritePositionPrev = _spritePosition;
@@ -41,11 +39,11 @@ namespace GunsBullets {
             var sound = content.Load<SoundEffect>(Config.Sound_Shot);
             sound.Play();
 
-            _ricochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
-            _ricochetSounds[0] = content.Load<SoundEffect>(Config.Sound_Ricochet1);
-            _ricochetSounds[1] = content.Load<SoundEffect>(Config.Sound_Ricochet2);
+            RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
+            RicochetSounds[0] = content.Load<SoundEffect>(Config.Sound_Ricochet1);
+            RicochetSounds[1] = content.Load<SoundEffect>(Config.Sound_Ricochet2);
 
-            _radius = (_bulletTexture.Width / 2.0f + _bulletTexture.Height / 2.0f) / 2.0f;
+            _radius = (BulletTexture.Width / 2.0f + BulletTexture.Height / 2.0f) / 2.0f;
 
             _randGenerator = new Random();
         }
@@ -53,15 +51,15 @@ namespace GunsBullets {
         public void UpdateBullet(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions, Texture2D wallTexture) {
 
             _spritePosition += _spriteSpeed;
-            var maxX = map._mapTexture.Width - _bulletTexture.Width;
+            var maxX = map._mapTexture.Width - BulletTexture.Width;
             const int minX = 0;
-            var maxY = map._mapTexture.Height - _bulletTexture.Height;
+            var maxY = map._mapTexture.Height - BulletTexture.Height;
             const int minY = 0;
 
             //ricochete off walls
             foreach (var wallPosition in wallPositions) {
 
-                var b = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _bulletTexture.Height / 2);
+                var b = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), BulletTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
                 if (Collisions.Intersects(b, r)) {
@@ -69,15 +67,15 @@ namespace GunsBullets {
                     double hx = (b.Radius + r.Width / 2) * (b.Center.X - r.Center.X);
                     if (wy > hx) {
                         if (wy > -hx && _spriteSpeed.Y < 0)
-                            RicochetOrDestruction(false, (int)wallPosition.Y + wallTexture.Height + (int)_bulletTexture.Height/2);
+                            RicochetOrDestruction(false, (int)wallPosition.Y + wallTexture.Height + (int)BulletTexture.Height/2);
                         else if (wy <= -hx && _spriteSpeed.X > 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X - (int)_bulletTexture.Width/2);
+                            RicochetOrDestruction(true, (int)wallPosition.X - (int)BulletTexture.Width/2);
                     }
                     else {
                         if (wy > -hx && _spriteSpeed.X < 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X + wallTexture.Width + (int)_bulletTexture.Width/2);
+                            RicochetOrDestruction(true, (int)wallPosition.X + wallTexture.Width + (int)BulletTexture.Width/2);
                         else if (wy <= -hx && _spriteSpeed.Y > 0) {
-                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)_bulletTexture.Height/2);
+                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)BulletTexture.Height/2);
                         }
                     }
                 }
@@ -97,7 +95,7 @@ namespace GunsBullets {
         }
 
         public void DrawBullet(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(_bulletTexture, _spritePosition - _origin, Color.White);
+            spriteBatch.Draw(BulletTexture, _spritePosition - _origin, Color.White);
         }
 
         private void RicochetOrDestruction(bool verticalWall, int border) {
@@ -106,7 +104,7 @@ namespace GunsBullets {
 
                 _spriteSpeed.X *= verticalWall ? -1 : 1;
                 _spriteSpeed.Y *= verticalWall ? 1 : -1;
-                _ricochetSounds[_randGenerator.Next(Config.RicochetesSoundsAmount)].Play();
+                RicochetSounds[_randGenerator.Next(Config.RicochetesSoundsAmount)].Play();
             } else {
                 DestroyMe = true;
             }

@@ -12,13 +12,12 @@ namespace GunsBullets {
         public static readonly Guest instance = new Guest();
         TcpClient clientSocket;
         IPEndPoint serverEndPoint;
-        private volatile Player _playerToSend;
         private Int32 serverIdentificationNumber;
         private ContentManager _content;
         private List<Player> _otherPlayers;
         private List<Player> _allPlayers;
 
-        internal Player PlayerToSend { get => _playerToSend; set => _playerToSend = value; }
+        internal Player PlayerToSend { get; set; }
 
         private Guest() {
             // Create a TcpClient.
@@ -34,7 +33,7 @@ namespace GunsBullets {
         public void Start(List<Player> allPlayers, ContentManager content) {
             _allPlayers = allPlayers;
             _content = content;
-            _playerToSend = allPlayers[0];
+            PlayerToSend = allPlayers[0];
         }
 
         public void Stop() {
@@ -48,8 +47,8 @@ namespace GunsBullets {
                 // Get a client stream for reading and writing.
                 using (NetworkStream stream = LookForHost()) {
                     // Send the message to the connected TcpServer.
-                    lock (_playerToSend) {
-                        data = Serialization.ObjectToByteArray(_playerToSend);
+                    lock (PlayerToSend) {
+                        data = Serialization.ObjectToByteArray(PlayerToSend);
                     }               
                     stream.Write(data, 0, data.Length);
 
@@ -59,10 +58,10 @@ namespace GunsBullets {
                     serverIdentificationNumber = BitConverter.ToInt32(data, 0);
                     Console.WriteLine("Received unique key: {0}", serverIdentificationNumber);
 
-                    _playerToSend.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[serverIdentificationNumber]);
+                    PlayerToSend.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[serverIdentificationNumber]);
                     while (true) {
-                        _playerToSend.ServerIdentificationNumber = serverIdentificationNumber;
-                        data = Serialization.ObjectToByteArray(_playerToSend);
+                        PlayerToSend.ServerIdentificationNumber = serverIdentificationNumber;
+                        data = Serialization.ObjectToByteArray(PlayerToSend);
                         stream.Write(data, 0, data.Length);
 
                         GetListOfOtherPlayerFromHost(stream);

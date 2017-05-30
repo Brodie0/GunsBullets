@@ -17,17 +17,16 @@ namespace GunsBullets {
         TcpListener _serverSocket;
         IPEndPoint _serverEndPoint;
         TcpClient _client;
-        List<Player> _guests;
         List<Player> _allPlayers;
         ContentManager _content;
 
-        internal List<Player> Guests { get => _guests;}
+        internal List<Player> Guests { get; private set; }
 
         private Host() {
             _serverEndPoint = new IPEndPoint(IPAddress.Parse(Interface.GetLocalIPAddress()), Config.Port);
             _serverSocket = new TcpListener(_serverEndPoint);
             _client = null;
-            _guests = new List<Player>(Config.MaxNumberOfGuests);
+            Guests = new List<Player>(Config.MaxNumberOfGuests);
         }
 
         public void Start(ref List<Player> players, ContentManager contentP) {
@@ -72,22 +71,22 @@ namespace GunsBullets {
                     while (_client != null) {
                         guest = Serialization.ReadPlayerData(stream);
                         bool newGuest = true;
-                        foreach (Player actualGuest in _guests) {
+                        foreach (Player actualGuest in Guests) {
                             if (actualGuest.ServerIdentificationNumber == guest.ServerIdentificationNumber) {
-                                _guests[guest.ServerIdentificationNumber - 1] = guest;
+                                Guests[guest.ServerIdentificationNumber - 1] = guest;
                                 newGuest = false;
                                 break;
                             }
                         }
-                        if (newGuest && _guests.Count < Config.MaxNumberOfGuests) {
+                        if (newGuest && Guests.Count < Config.MaxNumberOfGuests) {
                             //give him a key here
-                            guest.ServerIdentificationNumber = _guests.Count + 1;
+                            guest.ServerIdentificationNumber = Guests.Count + 1;
                             //add guest to actual guests
-                            _guests.Add(guest);
+                            Guests.Add(guest);
                             WritePlayerKey(guest.ServerIdentificationNumber, stream);
                         }
                         //update guests textures and soudeffects
-                        foreach (Player player in _guests) {
+                        foreach (Player player in Guests) {
                             player.DeathScream = _content.Load<SoundEffect>(Config.Sound_DeathScream);
                             player.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[player.ServerIdentificationNumber]);
                             foreach (Bullet bullet in player.MyBullets) {
@@ -103,7 +102,7 @@ namespace GunsBullets {
                             _allPlayers[0].ServerIdentificationNumber = 0;
                             if (_allPlayers.Count > 1)
                                 _allPlayers.RemoveRange(1, _allPlayers.Count - 1);
-                            _allPlayers.AddRange(_guests);
+                            _allPlayers.AddRange(Guests);
                         }
 
                         //TODO consider monitors usage 

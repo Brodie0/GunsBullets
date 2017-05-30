@@ -15,9 +15,6 @@ using System.Linq;
 namespace GunsBullets {
     [Serializable]
     class Player {
-        private Int32 serverIdentificationNumber;
-        [NonSerialized] private Texture2D _playerTexture;
-        private List<Bullet> _myBullets;
         private readonly Vector2 _origin;
         [NonSerialized] private KeyboardState _oldKeyboardState;
         [NonSerialized] private MouseState _oldMouseState;
@@ -27,7 +24,6 @@ namespace GunsBullets {
         [NonSerialized] private bool _continuousFire;
         [NonSerialized] private bool _singleShot;
         private readonly float _radiusOfBody;
-        [NonSerialized] private SoundEffect _deathScream;
         private int _ammoAmount;
         private int _deathsAmount;
 
@@ -37,18 +33,18 @@ namespace GunsBullets {
         public float Rotation => _rotation;
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
-        public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
-        public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
-        public Int32 ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
-        public List<Bullet> MyBullets { get => _myBullets; set => _myBullets = value; }
+        public Texture2D PlayerTexture { get; set; }
+        public SoundEffect DeathScream { get; set; }
+        public Int32 ServerIdentificationNumber { get; set; }
+        public List<Bullet> MyBullets { get; set; }
 
         public void DecreaseAmmo() { _ammoAmount--; }
 
         public Player(ContentManager content) {
-            _playerTexture = content.Load<Texture2D>(Config.PlayerTexture[0]);
-            _myBullets = new List<Bullet>();
-            _origin = new Vector2(_playerTexture.Width / 2.0f, _playerTexture.Height / 2.0f);
-            _radiusOfBody = (_playerTexture.Width / 2.0f + _playerTexture.Height / 2.0f) / 2.0f;
+            PlayerTexture = content.Load<Texture2D>(Config.PlayerTexture[0]);
+            MyBullets = new List<Bullet>();
+            _origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
+            _radiusOfBody = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
             DeathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
             _spritePosition = Vector2.Zero;
             _spriteSpeed = Vector2.Zero;
@@ -66,7 +62,7 @@ namespace GunsBullets {
 
 
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(_playerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
 
@@ -90,9 +86,9 @@ namespace GunsBullets {
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
                 _spriteSpeed.X = 0.0f;
 
-            var maxX = map._mapTexture.Width - _playerTexture.Width;
+            var maxX = map._mapTexture.Width - PlayerTexture.Width;
             const int minX = 0;
-            var maxY = map._mapTexture.Height - _playerTexture.Height;
+            var maxY = map._mapTexture.Height - PlayerTexture.Height;
             const int minY = 0;
 
             // borders collision
@@ -108,7 +104,7 @@ namespace GunsBullets {
 
             //wall collision
             foreach (var wallPosition in wallPositions) {
-                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), _playerTexture.Height / 2);
+                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), PlayerTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
                 if (Collisions.Intersects(p, r)) {
@@ -211,8 +207,8 @@ namespace GunsBullets {
             string s1 = _origin.ToString();
             string s2 = _spritePosition.ToString();
             string s3 = _spriteSpeed.ToString();
-            string bullets = string.Join("\nBullet: ", _myBullets.Select(x => x.ToString()).ToArray());
-            return "\nUniqueKey: " + serverIdentificationNumber + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
+            string bullets = string.Join("\nBullet: ", MyBullets.Select(x => x.ToString()).ToArray());
+            return "\nUniqueKey: " + ServerIdentificationNumber + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
                 "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: ";
         }
     }
