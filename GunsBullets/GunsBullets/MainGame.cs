@@ -65,6 +65,8 @@ namespace GunsBullets {
         /// </summary>
         protected override void LoadContent() {
             base.LoadContent();
+            TextureAtlas.Initialize(Content);
+            AudioAtlas.Initialize(Content);
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
             players.Add(new Player(Content));
@@ -130,13 +132,13 @@ namespace GunsBullets {
                 gdm.ToggleFullScreen();
 
             Player player1 = players.First();
-            player1.UpdatePlayer(ref gdm, ref map, ref allBullets, map.WallPositions, map.WallTexture);
-            if (player1.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
+            player1.UpdatePlayer(ref gdm, ref map, ref allBullets, map.WallPositions, TextureAtlas.Wall);
+            if (player1.UpdateReloadPosition(map.AmmoPositions) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
                 ifPressReload = true;
                 lock (Content)
                     player1.AmmoReload(Content);
             }
-            if (player1.UpdateReloadPosition(map.AmmoPositions, map.AmmoTexture) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
+            if (player1.UpdateReloadPosition(map.AmmoPositions) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
                 ifPressReload = false;
             //update only if window is focused
             if (IsActive) {
@@ -177,7 +179,7 @@ namespace GunsBullets {
                 }
             }
             foreach (var bullet in player1.MyBullets) {
-                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, map.WallTexture);
+                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, TextureAtlas.Wall);
             }
             base.Update(gameTime);
         }

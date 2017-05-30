@@ -72,34 +72,23 @@ namespace GunsBullets {
                         guest = Serialization.ReadPlayerData(stream);
                         bool newGuest = true;
                         foreach (Player actualGuest in Guests) {
-                            if (actualGuest.ServerIdentificationNumber == guest.ServerIdentificationNumber) {
-                                Guests[guest.ServerIdentificationNumber - 1] = guest;
+                            if (actualGuest.PlayerID == guest.PlayerID) {
+                                Guests[guest.PlayerID - 1] = guest;
                                 newGuest = false;
                                 break;
                             }
                         }
                         if (newGuest && Guests.Count < Config.MaxNumberOfGuests) {
                             //give him a key here
-                            guest.ServerIdentificationNumber = Guests.Count + 1;
+                            guest.PlayerID = Guests.Count + 1;
                             //add guest to actual guests
                             Guests.Add(guest);
-                            WritePlayerKey(guest.ServerIdentificationNumber, stream);
+                            WritePlayerKey(guest.PlayerID, stream);
                         }
-                        //update guests textures and soudeffects
-                        foreach (Player player in Guests) {
-                            player.DeathScream = _content.Load<SoundEffect>(Config.Sound_DeathScream);
-                            player.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[player.ServerIdentificationNumber]);
-                            foreach (Bullet bullet in player.MyBullets) {
-                                bullet.BulletTexture = _content.Load<Texture2D>(Config.BulletTexture);
-                                bullet.RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
-                                bullet.RicochetSounds[0] = _content.Load<SoundEffect>(Config.Sound_Ricochet1);
-                                bullet.RicochetSounds[1] = _content.Load<SoundEffect>(Config.Sound_Ricochet2);
-                            }
-                        }
-
+                        
                         //update players                     
                         lock (_allPlayers) {
-                            _allPlayers[0].ServerIdentificationNumber = 0;
+                            _allPlayers[0].PlayerID = 0;
                             if (_allPlayers.Count > 1)
                                 _allPlayers.RemoveRange(1, _allPlayers.Count - 1);
                             _allPlayers.AddRange(Guests);

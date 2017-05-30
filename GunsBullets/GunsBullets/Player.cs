@@ -15,43 +15,42 @@ using System.Linq;
 namespace GunsBullets {
     [Serializable]
     class Player {
-        private readonly Vector2 _origin;
         [NonSerialized] private KeyboardState _oldKeyboardState;
         [NonSerialized] private MouseState _oldMouseState;
-        private float _rotation;
-        private Vector2 _spritePosition;
-        private Vector2 _spriteSpeed;
-        [NonSerialized] private bool _continuousFire;
-        [NonSerialized] private bool _singleShot;
-        private readonly float _radiusOfBody;
-        private int _ammoAmount;
-        private int _deathsAmount;
-
-        public bool ContinuousFire => _continuousFire;
-        public bool SingleShot => _singleShot;
-        public Vector2 SpritePosition => _spritePosition;
-        public float Rotation => _rotation;
         public MouseState OldMouseState => _oldMouseState;
-        public Vector2 Origin => _origin;
-        public Texture2D PlayerTexture { get; set; }
-        public SoundEffect DeathScream { get; set; }
-        public Int32 ServerIdentificationNumber { get; set; }
-        public List<Bullet> MyBullets { get; set; }
 
-        public void DecreaseAmmo() { _ammoAmount--; }
+        private readonly float bodyRadius;
+        private int ammo;
+        private int deaths;
+
+        public int PlayerID;
+        public Texture2D PlayerTexture { get { return TextureAtlas.Player[PlayerID]; } }
+        public List<Bullet> MyBullets;
+
+        public readonly Vector2 Origin;
+        public float Rotation;
+        public Vector2 SpritePosition;
+        public Vector2 SpriteSpeed;
+
+        [NonSerialized] private bool _continuousFire;
+        public bool ContinuousFire => _continuousFire;
+
+        [NonSerialized] private bool _singleShot;
+        public bool SingleShot => _singleShot;
+        
+        public void DecreaseAmmo() { ammo--; }
 
         public Player(ContentManager content) {
-            PlayerTexture = content.Load<Texture2D>(Config.PlayerTexture[0]);
+            PlayerID = 0;
             MyBullets = new List<Bullet>();
-            _origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
-            _radiusOfBody = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
-            DeathScream = content.Load<SoundEffect>(Config.Sound_DeathScream);
-            _spritePosition = Vector2.Zero;
-            _spriteSpeed = Vector2.Zero;
+            Origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
+            bodyRadius = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
+            SpritePosition = Vector2.Zero;
+            SpriteSpeed = Vector2.Zero;
             _continuousFire = false;
             _singleShot = false;
-            _ammoAmount = Config.MaxAmmoAmount;
-            _deathsAmount = 0;
+            ammo = Config.MaxAmmoAmount;
+            deaths = 0;
         }
 
         public void UpdatePlayer(ref GraphicsDeviceManager graphics, ref Map map, ref List<Bullet> bullets, IEnumerable<Vector2> wallPositions, Texture2D wallTexture) {
@@ -62,7 +61,7 @@ namespace GunsBullets {
 
 
         public void DrawPlayer(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(PlayerTexture, _spritePosition + _origin, null, Color.White, _rotation, _origin, 1.0f, SpriteEffects.None, 0.0f);
+            spriteBatch.Draw(PlayerTexture, SpritePosition + Origin, null, Color.White, Rotation, Origin, 1.0f, SpriteEffects.None, 0.0f);
         }
 
 
@@ -70,94 +69,94 @@ namespace GunsBullets {
             KeyboardState newKeyboardState = Keyboard.GetState();
 
             if (newKeyboardState.IsKeyDown(Keys.W))
-                _spriteSpeed.Y = -Config.PlayerMaxSpeed;
+                SpriteSpeed.Y = -Config.PlayerMaxSpeed;
             else if (_oldKeyboardState.IsKeyDown(Keys.W))
-                _spriteSpeed.Y = 0.0f;
+                SpriteSpeed.Y = 0.0f;
             if (newKeyboardState.IsKeyDown(Keys.S))
-                _spriteSpeed.Y = Config.PlayerMaxSpeed;
+                SpriteSpeed.Y = Config.PlayerMaxSpeed;
             else if (_oldKeyboardState.IsKeyDown(Keys.S))
-                _spriteSpeed.Y = 0.0f;
+                SpriteSpeed.Y = 0.0f;
             if (newKeyboardState.IsKeyDown(Keys.A))
-                _spriteSpeed.X = -Config.PlayerMaxSpeed;
+                SpriteSpeed.X = -Config.PlayerMaxSpeed;
             else if (_oldKeyboardState.IsKeyDown(Keys.A))
-                _spriteSpeed.X = 0.0f;
+                SpriteSpeed.X = 0.0f;
             if (newKeyboardState.IsKeyDown(Keys.D))
-                _spriteSpeed.X = Config.PlayerMaxSpeed;
+                SpriteSpeed.X = Config.PlayerMaxSpeed;
             else if (_oldKeyboardState.IsKeyDown(Keys.D))
-                _spriteSpeed.X = 0.0f;
+                SpriteSpeed.X = 0.0f;
 
-            var maxX = map._mapTexture.Width - PlayerTexture.Width;
+            var maxX = TextureAtlas.Map.Width - PlayerTexture.Width;
             const int minX = 0;
-            var maxY = map._mapTexture.Height - PlayerTexture.Height;
+            var maxY = TextureAtlas.Map.Height - PlayerTexture.Height;
             const int minY = 0;
 
             // borders collision
-            if (_spritePosition.X + _spriteSpeed.X > maxX)
-                _spriteSpeed.X = 0;
-            else if (_spritePosition.X + _spriteSpeed.X < minX)
-                _spriteSpeed.X = 0;
+            if (SpritePosition.X + SpriteSpeed.X > maxX)
+                SpriteSpeed.X = 0;
+            else if (SpritePosition.X + SpriteSpeed.X < minX)
+                SpriteSpeed.X = 0;
 
-            if (_spritePosition.Y + _spriteSpeed.Y > maxY)
-                _spriteSpeed.Y = 0;
-            else if (_spritePosition.Y + _spriteSpeed.Y < minY)
-                _spriteSpeed.Y = 0;
+            if (SpritePosition.Y + SpriteSpeed.Y > maxY)
+                SpriteSpeed.Y = 0;
+            else if (SpritePosition.Y + SpriteSpeed.Y < minY)
+                SpriteSpeed.Y = 0;
 
             //wall collision
             foreach (var wallPosition in wallPositions) {
-                var p = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), PlayerTexture.Height / 2);
+                var p = new BoundingSphere(new Vector3(SpritePosition + Origin, 0), PlayerTexture.Height / 2);
                 var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
 
                 if (Collisions.Intersects(p, r)) {
                     double wy = (p.Radius + r.Height / 2) * (p.Center.Y - r.Center.Y);
                     double hx = (p.Radius + r.Width / 2) * (p.Center.X - r.Center.X);
                     if (wy > hx) {
-                        if (wy > -hx && _spriteSpeed.Y < 0)
-                            _spriteSpeed.Y = 0;
-                        else if( wy <=- hx && _spriteSpeed.X > 0)
-                            _spriteSpeed.X = 0;
+                        if (wy > -hx && SpriteSpeed.Y < 0)
+                            SpriteSpeed.Y = 0;
+                        else if( wy <=- hx && SpriteSpeed.X > 0)
+                            SpriteSpeed.X = 0;
                     }
                     else {
-                        if (wy > -hx && _spriteSpeed.X < 0)
-                            _spriteSpeed.X = 0;
-                        else if(wy <= -hx && _spriteSpeed.Y > 0)  {
-                            _spriteSpeed.Y = 0;
+                        if (wy > -hx && SpriteSpeed.X < 0)
+                            SpriteSpeed.X = 0;
+                        else if(wy <= -hx && SpriteSpeed.Y > 0)  {
+                            SpriteSpeed.Y = 0;
                         }
                     }
                 }
             }
-            _spritePosition += _spriteSpeed;
+            SpritePosition += SpriteSpeed;
             _oldKeyboardState = newKeyboardState;
         }
 
         private void UpdateMouse(ref GraphicsDeviceManager graphics) {
             var newMouseState = Mouse.GetState();
             if (IsMouseInsideWindow(graphics, newMouseState)) {
-                var newX = newMouseState.X + _spritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
-                var newY = newMouseState.Y + _spritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
+                var newX = newMouseState.X + SpritePosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
+                var newY = newMouseState.Y + SpritePosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
 
                 //rotation
-                var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(_spritePosition.X - newX) /
-                    (Math.Sqrt(Math.Pow(_spritePosition.X - newX, 2.0) + Math.Pow(_spritePosition.Y - newY, 2.0)))));
-                if (newX > _spritePosition.X && newY < _spritePosition.Y)
-                    _rotation = rotationTemp;
-                else if (newX > _spritePosition.X && newY > _spritePosition.Y)
-                    _rotation = Convert.ToSingle(Math.PI) - rotationTemp;
-                else if (newX < _spritePosition.X && newY > _spritePosition.Y)
-                    _rotation = Convert.ToSingle(2 * Math.PI) - (Convert.ToSingle(Math.PI) - rotationTemp);
-                else if (newX < _spritePosition.X && newY < _spritePosition.Y)
-                    _rotation = Convert.ToSingle(2 * Math.PI) - rotationTemp;
+                var rotationTemp = Convert.ToSingle(Math.Asin(Math.Abs(SpritePosition.X - newX) /
+                    (Math.Sqrt(Math.Pow(SpritePosition.X - newX, 2.0) + Math.Pow(SpritePosition.Y - newY, 2.0)))));
+                if (newX > SpritePosition.X && newY < SpritePosition.Y)
+                    Rotation = rotationTemp;
+                else if (newX > SpritePosition.X && newY > SpritePosition.Y)
+                    Rotation = Convert.ToSingle(Math.PI) - rotationTemp;
+                else if (newX < SpritePosition.X && newY > SpritePosition.Y)
+                    Rotation = Convert.ToSingle(2 * Math.PI) - (Convert.ToSingle(Math.PI) - rotationTemp);
+                else if (newX < SpritePosition.X && newY < SpritePosition.Y)
+                    Rotation = Convert.ToSingle(2 * Math.PI) - rotationTemp;
 
                 //fire
-                if (newMouseState.LeftButton == ButtonState.Pressed && _ammoAmount > 0) {
+                if (newMouseState.LeftButton == ButtonState.Pressed && ammo > 0) {
                     if (_oldMouseState.LeftButton == ButtonState.Released)
                         _singleShot = true;
                     else
                         _continuousFire = true;
-                }
-                else {
+                } else {
                     _singleShot = false;
                     _continuousFire = false;
                 }
+
                 _oldMouseState = newMouseState;
             }
         }
@@ -171,9 +170,9 @@ namespace GunsBullets {
             //distance between player's and bullet's centres
             foreach (var bullet in bullets) {
                 var distance = Convert.ToSingle(
-                    Math.Sqrt(Math.Pow(bullet.SpritePosition.X - _spritePosition.X - _origin.X, 2) +
-                              Math.Pow(bullet.SpritePosition.Y - _spritePosition.Y - _origin.Y, 2)));
-                if (!(distance > bullet.Radius + _radiusOfBody)) {
+                    Math.Sqrt(Math.Pow(bullet.SpritePosition.X - SpritePosition.X - Origin.X, 2) +
+                              Math.Pow(bullet.SpritePosition.Y - SpritePosition.Y - Origin.Y, 2)));
+                if (!(distance > bullet.Radius + bodyRadius)) {
                     OnHitReact();
                     bullet.DestroyMe = true;
                 }
@@ -181,35 +180,33 @@ namespace GunsBullets {
         }
 
         public void AmmoReload(ContentManager content) {
-            _ammoAmount = Config.MaxAmmoAmount;
-            var sound = content.Load<SoundEffect>(Config.Sound_Reload);
-            sound.Play();
+            ammo = Config.MaxAmmoAmount;
+            AudioAtlas.Reload.Play();
         }
 
-        public bool UpdateReloadPosition(IEnumerable<Vector2> ammoPositions, Texture2D ammoTexture) {
-            foreach(var ammoPosition in ammoPositions) {
-                if (_spritePosition.X + _origin.X >= ammoPosition.X && _spritePosition.X + _origin.X <= ammoPosition.X + ammoTexture.Width &&
-                    _spritePosition.Y + _origin.Y >= ammoPosition.Y && _spritePosition.Y + _origin.Y <= ammoPosition.Y + ammoTexture.Height)
+        public bool UpdateReloadPosition(IEnumerable<Vector2> ammoPositions) {
+            foreach (var ammoPosition in ammoPositions) {
+                if (SpritePosition.X + Origin.X >= ammoPosition.X && SpritePosition.X + Origin.X <= ammoPosition.X + TextureAtlas.Ammo.Width &&
+                    SpritePosition.Y + Origin.Y >= ammoPosition.Y && SpritePosition.Y + Origin.Y <= ammoPosition.Y + TextureAtlas.Ammo.Height)
                     return true;
             }
             return false;
         }
 
         private void OnHitReact() {
-            DeathScream.Play();
-            _deathsAmount++;
-            Thread.Sleep(200);
-            _spritePosition = Vector2.Zero;
-            _ammoAmount = Config.MaxAmmoAmount;
+            AudioAtlas.DeathScream.Play();
+            deaths++;
+            SpritePosition = Vector2.Zero;
+            ammo = Config.MaxAmmoAmount;
         }
 
         public override string ToString() {
-            string s1 = _origin.ToString();
-            string s2 = _spritePosition.ToString();
-            string s3 = _spriteSpeed.ToString();
+            string s1 = Origin.ToString();
+            string s2 = SpritePosition.ToString();
+            string s3 = SpriteSpeed.ToString();
             string bullets = string.Join("\nBullet: ", MyBullets.Select(x => x.ToString()).ToArray());
-            return "\nUniqueKey: " + ServerIdentificationNumber + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
-                "\nRotation: " + _rotation + "\nAmmoAmount: " + _ammoAmount + "\nDeathsAmount: " + _deathsAmount + "\nDestroyMe: ";
+            return "\nUniqueKey: " + PlayerID + "\n\nBULLETS: " + bullets + "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + 
+                "\nRotation: " + Rotation + "\nAmmoAmount: " + ammo + "\nDeathsAmount: " + deaths + "\nDestroyMe: ";
         }
     }
 }

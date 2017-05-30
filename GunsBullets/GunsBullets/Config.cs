@@ -9,20 +9,10 @@ namespace GunsBullets {
         // TODO: Remove this wherever it's used - used to load map data etc, will
         // break once the project is built and released without the source code!
         public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
-
-        //textures
-        public static string[] PlayerTexture = { "uberSoldier1", "uberSoldier2", "uberSoldier3", "uberSoldier4" };
-        public static string BulletTexture = "bullet1";
-        public static string MapTexture = "map2";
-        public static string WallTexture = "wall";
-        public static string AmmoTexture = "ammo";
+        
         public static string WallAndAmmoPositions = "mapa.txt";
         //sounds
-        public static string Sound_Shot = "m4a1single";
-        public static string Sound_Reload = "gunreload";
-        public static string Sound_Ricochet1 = "ricochet1";
-        public static string Sound_Ricochet2 = "ricochet2";
-        public static string Sound_DeathScream = "wilhelmScream";
+        
         //other
         public static int RicochetesSoundsAmount = 2;
         public static int FireRate = 10;
@@ -32,7 +22,6 @@ namespace GunsBullets {
 
         public static int RicochetProbability = 4; // 1 / N, 1->100%, 5->20% etc.
         public static int MaxAmmoAmount = 100;
-        public static Texture2D AmmoPosition = null;
         public static char WallSignInTxtMap = '1';
         public static char AmmoSignInTxtMap = '2';
         public static short SpacesForEachSignInTxtMap = 2;
