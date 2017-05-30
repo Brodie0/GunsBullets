@@ -8,10 +8,9 @@ namespace GunsBullets {
     class Config {
         // TODO: Remove this wherever it's used - used to load map data etc, will
         // break once the project is built and released without the source code!
+        // Map tokens are now defined in Map.cs (during the loading).
         public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
-        
         public static string WallAndAmmoPositions = "mapa.txt";
-        //sounds
         
         //other
         public static int RicochetesSoundsAmount = 2;
@@ -22,9 +21,7 @@ namespace GunsBullets {
 
         public static int RicochetProbability = 4; // 1 / N, 1->100%, 5->20% etc.
         public static int MaxAmmoAmount = 100;
-        public static char WallSignInTxtMap = '1';
-        public static char AmmoSignInTxtMap = '2';
-        public static short SpacesForEachSignInTxtMap = 2;
+        
         public static int MaxNumberOfPlayers = 4;
         public static int MaxNumberOfGuests = MaxNumberOfPlayers - 1;
         public static int SendingPackagesDelay = 5;

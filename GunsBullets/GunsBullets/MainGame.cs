@@ -11,9 +11,6 @@ using System.Threading.Tasks;
 using System.Net;
 
 namespace GunsBullets {
-    /// <summary>
-    /// This is the main type for your game
-    /// </summary>
     public class MainGame : Microsoft.Xna.Framework.Game {
         GraphicsDeviceManager gdm;
         SpriteBatch spriteBatch;
@@ -128,8 +125,11 @@ namespace GunsBullets {
                 interf.StopGuesting = false;
             }
 
-            if (interf.ToggleFullScreen)
+            if (interf.ToggleFullScreen) {
                 gdm.ToggleFullScreen();
+                interf.ToggleFullScreen = false;
+            }
+                
 
             Player player1 = players.First();
             player1.UpdatePlayer(ref gdm, ref map, ref allBullets, map.WallPositions, TextureAtlas.Wall);

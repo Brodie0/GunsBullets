@@ -11,31 +11,36 @@ namespace GunsBullets {
         public List<Vector2> WallPositions;
         public List<Vector2> AmmoPositions;
 
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+
         public Map(ContentManager content) {
             WallPositions = new List<Vector2>();
             AmmoPositions = new List<Vector2>();
 
-            //load map dimensions
-            int height = 0;
-            int width = 0;
-            using (var str = new StreamReader(Config.ContentPath + Config.WallAndAmmoPositions)) {
-                string firstLine = str.ReadLine();
-                width = firstLine.Length + Environment.NewLine.Length; //61
-                str.DiscardBufferedData();
-                str.BaseStream.Seek(0, System.IO.SeekOrigin.Begin);
-                int allChars = str.ReadToEnd().Length;
-                height = allChars / width; //20
-            }
+            // Load our map:
+            string line = "# Lines starting with the # symbol will be ignored!";
+            using (var sr = new StreamReader(Config.ContentPath + Config.WallAndAmmoPositions)) {
+                do { line = sr.ReadLine(); } while (string.IsNullOrWhiteSpace(line) || line[0] == '#');
+                string[] header = line.Split(' ');
 
-            //load all walls, ammo etc.
-            using (var fileStream = new FileStream(Config.ContentPath + Config.WallAndAmmoPositions, FileMode.Open, FileAccess.Read)) {
-                for (int i = 0; i <= height; i++) {
-                    for (int j = 0; j < width; j++) {
-                        var sign = (char)fileStream.ReadByte();
-                        if (sign == Config.WallSignInTxtMap)
-                            WallPositions.Add(new Vector2(j / Config.SpacesForEachSignInTxtMap * TextureAtlas.Wall.Width, i * TextureAtlas.Wall.Height));
-                        else if (sign == Config.AmmoSignInTxtMap)
-                            AmmoPositions.Add(new Vector2(j / Config.SpacesForEachSignInTxtMap * TextureAtlas.Ammo.Width, i * TextureAtlas.Ammo.Height));
+                Width = Int32.Parse(header[0]);
+                Height = Int32.Parse(header[1]);
+
+                for (int y = 0; y < Height; y++) {
+                    do { line = sr.ReadLine(); } while (string.IsNullOrWhiteSpace(line) || line[0] == '#');
+                    string[] mapObjects = line.Split(' ');
+
+                    for (int x = 0; x < Width; x++) {
+                        int thing = Int32.Parse(mapObjects[x]);
+                        switch (thing) {
+                        case 1:
+                            WallPositions.Add(new Vector2(x * TextureAtlas.Wall.Width, y * TextureAtlas.Wall.Height));
+                            break;
+                        case 2:
+                            AmmoPositions.Add(new Vector2(x * TextureAtlas.Ammo.Width, y * TextureAtlas.Ammo.Height));
+                            break;
+                        }
                     }
                 }
             }

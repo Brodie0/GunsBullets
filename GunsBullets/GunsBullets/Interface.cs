@@ -12,9 +12,9 @@ namespace GunsBullets {
     class Interface {
         private KeyboardState OldKeyboardState;
 
-        public bool Hosting { get; private set; }
-        public bool ToggleFullScreen { get; private set; }
-        public bool Guesting { get; private set; }
+        public bool Hosting { get; set; }
+        public bool ToggleFullScreen { get; set; }
+        public bool Guesting { get; set; }
         public bool StopHosting { get; set; }
         public bool InitializeHost { get; set; }
         public bool StopGuesting { get; set; }
@@ -32,7 +32,9 @@ namespace GunsBullets {
             //interface features
             if (newKeyboardState.IsKeyDown(Keys.F) && OldKeyboardState.IsKeyUp(Keys.F)) {
                 ToggleFullScreen = !ToggleFullScreen;
-            } else if (newKeyboardState.IsKeyDown(Keys.H) && OldKeyboardState.IsKeyUp(Keys.H) && !Guesting) {
+            }
+
+            if (newKeyboardState.IsKeyDown(Keys.H) && OldKeyboardState.IsKeyUp(Keys.H) && !Guesting) {
                 //multiplayer options
                 if (Hosting) StopHosting = true;
                 else InitializeHost = true;
