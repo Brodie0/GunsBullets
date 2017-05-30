@@ -26,6 +26,12 @@ namespace GunsBullets {
         private readonly float _radiusOfBody;
         private int _ammoAmount;
         private int _deathsAmount;
+        //fields needed for serialization (binaryFormatter serializes only fields, we need those fields on server)
+        private Int32 serverIdentificationNumber;
+        [NonSerialized] private Texture2D _playerTexture;
+        private List<Bullet> _myBullets;
+        [NonSerialized] private SoundEffect _deathScream;
+
 
         public bool ContinuousFire => _continuousFire;
         public bool SingleShot => _singleShot;
@@ -33,10 +39,10 @@ namespace GunsBullets {
         public float Rotation => _rotation;
         public MouseState OldMouseState => _oldMouseState;
         public Vector2 Origin => _origin;
-        public Texture2D PlayerTexture { get; set; }
-        public SoundEffect DeathScream { get; set; }
-        public Int32 ServerIdentificationNumber { get; set; }
-        public List<Bullet> MyBullets { get; set; }
+        public int ServerIdentificationNumber { get => serverIdentificationNumber; set => serverIdentificationNumber = value; }
+        public Texture2D PlayerTexture { get => _playerTexture; set => _playerTexture = value; }
+        internal List<Bullet> MyBullets { get => _myBullets; set => _myBullets = value; }
+        public SoundEffect DeathScream { get => _deathScream; set => _deathScream = value; }
 
         public void DecreaseAmmo() { _ammoAmount--; }
 

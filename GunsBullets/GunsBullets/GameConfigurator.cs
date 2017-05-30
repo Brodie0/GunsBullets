@@ -22,11 +22,12 @@ namespace GunsBullets {
                 return;
             } else Config.IPHostname = hostnameTextBox.Text;
 
-            short port;
-            if (!Int16.TryParse(portTextBox.Text, out port) || (port < 1024 || port > 10000)) {
+            if (!Int16.TryParse(portTextBox.Text, out short port) || (port < 1024 || port > 10000)) {
                 MessageBox.Show("The server's port must be a valid number between 1024 and 10000.");
                 return;
-            } else Config.Port = port;
+            }
+            else
+                Config.Port = port;
 
             Launch = true;
             Config.HostGame = hostCheckBox.Checked;

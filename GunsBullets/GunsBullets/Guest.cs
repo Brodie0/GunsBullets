@@ -24,7 +24,7 @@ namespace GunsBullets {
             // Note, for this client to work you need to have a TcpServer 
             // connected to the same address as specified by the server, port
             // combination.
-            serverEndPoint = new IPEndPoint(IPAddress.Loopback, Config.Port);
+            serverEndPoint = new IPEndPoint(IPAddress.Parse(Config.IPHostname), Config.Port);
             clientSocket = new TcpClient();
             serverIdentificationNumber = -1;
             _otherPlayers = new List<Player>(Config.MaxNumberOfGuests);
