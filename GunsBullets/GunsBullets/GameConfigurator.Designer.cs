@@ -32,6 +32,9 @@
             this.fullscreenCheckBox = new System.Windows.Forms.CheckBox();
             this.launchButton = new System.Windows.Forms.Button();
             this.hostCheckBox = new System.Windows.Forms.CheckBox();
+            this.nicknameLabel = new System.Windows.Forms.Label();
+            this.nicknameTextBox = new System.Windows.Forms.TextBox();
+            this.gamepadCheckBox = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // titleLabel
@@ -85,7 +88,7 @@
             this.debugCheckBox.AutoSize = true;
             this.debugCheckBox.Checked = true;
             this.debugCheckBox.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.debugCheckBox.Location = new System.Drawing.Point(110, 104);
+            this.debugCheckBox.Location = new System.Drawing.Point(110, 143);
             this.debugCheckBox.Name = "debugCheckBox";
             this.debugCheckBox.Size = new System.Drawing.Size(88, 17);
             this.debugCheckBox.TabIndex = 5;
@@ -95,7 +98,7 @@
             // fullscreenCheckBox
             // 
             this.fullscreenCheckBox.AutoSize = true;
-            this.fullscreenCheckBox.Location = new System.Drawing.Point(12, 104);
+            this.fullscreenCheckBox.Location = new System.Drawing.Point(12, 143);
             this.fullscreenCheckBox.Name = "fullscreenCheckBox";
             this.fullscreenCheckBox.Size = new System.Drawing.Size(74, 17);
             this.fullscreenCheckBox.TabIndex = 6;
@@ -105,7 +108,7 @@
             // launchButton
             // 
             this.launchButton.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(238)));
-            this.launchButton.Location = new System.Drawing.Point(12, 127);
+            this.launchButton.Location = new System.Drawing.Point(12, 166);
             this.launchButton.Name = "launchButton";
             this.launchButton.Size = new System.Drawing.Size(186, 23);
             this.launchButton.TabIndex = 7;
@@ -116,7 +119,7 @@
             // hostCheckBox
             // 
             this.hostCheckBox.AutoSize = true;
-            this.hostCheckBox.Location = new System.Drawing.Point(12, 81);
+            this.hostCheckBox.Location = new System.Drawing.Point(12, 120);
             this.hostCheckBox.Name = "hostCheckBox";
             this.hostCheckBox.Size = new System.Drawing.Size(79, 17);
             this.hostCheckBox.TabIndex = 9;
@@ -124,11 +127,41 @@
             this.hostCheckBox.UseVisualStyleBackColor = true;
             this.hostCheckBox.CheckedChanged += new System.EventHandler(this.hostCheckBox_CheckedChanged);
             // 
+            // nicknameLabel
+            // 
+            this.nicknameLabel.AutoSize = true;
+            this.nicknameLabel.Location = new System.Drawing.Point(9, 78);
+            this.nicknameLabel.Name = "nicknameLabel";
+            this.nicknameLabel.Size = new System.Drawing.Size(55, 13);
+            this.nicknameLabel.TabIndex = 10;
+            this.nicknameLabel.Text = "Nickname";
+            // 
+            // nicknameTextBox
+            // 
+            this.nicknameTextBox.Location = new System.Drawing.Point(12, 94);
+            this.nicknameTextBox.Name = "nicknameTextBox";
+            this.nicknameTextBox.Size = new System.Drawing.Size(186, 20);
+            this.nicknameTextBox.TabIndex = 11;
+            this.nicknameTextBox.Text = "Player";
+            // 
+            // gamepadCheckBox
+            // 
+            this.gamepadCheckBox.AutoSize = true;
+            this.gamepadCheckBox.Location = new System.Drawing.Point(110, 120);
+            this.gamepadCheckBox.Name = "gamepadCheckBox";
+            this.gamepadCheckBox.Size = new System.Drawing.Size(72, 17);
+            this.gamepadCheckBox.TabIndex = 12;
+            this.gamepadCheckBox.Text = "Gamepad";
+            this.gamepadCheckBox.UseVisualStyleBackColor = true;
+            // 
             // GameConfigurator
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(208, 156);
+            this.ClientSize = new System.Drawing.Size(208, 198);
+            this.Controls.Add(this.gamepadCheckBox);
+            this.Controls.Add(this.nicknameTextBox);
+            this.Controls.Add(this.nicknameLabel);
             this.Controls.Add(this.hostCheckBox);
             this.Controls.Add(this.launchButton);
             this.Controls.Add(this.fullscreenCheckBox);
@@ -158,5 +191,8 @@
         private System.Windows.Forms.CheckBox fullscreenCheckBox;
         private System.Windows.Forms.Button launchButton;
         private System.Windows.Forms.CheckBox hostCheckBox;
+        private System.Windows.Forms.Label nicknameLabel;
+        private System.Windows.Forms.TextBox nicknameTextBox;
+        private System.Windows.Forms.CheckBox gamepadCheckBox;
     }
 }

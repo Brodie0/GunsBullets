@@ -1,19 +1,15 @@
-﻿using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace GunsBullets {
     sealed class Guest {
         public static readonly Guest instance = new Guest();
         TcpClient clientSocket;
         IPEndPoint serverEndPoint;
-        private Int32 serverIdentificationNumber;
-        private ContentManager _content;
+        private Int32 playerID;
         private List<Player> _otherPlayers;
         private List<Player> _allPlayers;
 
@@ -26,13 +22,12 @@ namespace GunsBullets {
             // combination.
             serverEndPoint = new IPEndPoint(IPAddress.Parse(Config.IPHostname), Config.Port);
             clientSocket = new TcpClient();
-            serverIdentificationNumber = -1;
+            playerID = -1;
             _otherPlayers = new List<Player>(Config.MaxNumberOfGuests);
         }
 
-        public void Start(List<Player> allPlayers, ContentManager content) {
+        public void Start(List<Player> allPlayers) {
             _allPlayers = allPlayers;
-            _content = content;
             PlayerToSend = allPlayers[0];
         }
 
@@ -55,12 +50,11 @@ namespace GunsBullets {
                     //get unique key from host
                     data = new Byte[sizeof(Int32)];
                     stream.Read(data, 0, data.Length);
-                    serverIdentificationNumber = BitConverter.ToInt32(data, 0);
-                    Console.WriteLine("Received unique key: {0}", serverIdentificationNumber);
+                    playerID = BitConverter.ToInt32(data, 0);
+                    Console.WriteLine("Received unique key: {0}", playerID);
 
-                    PlayerToSend.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[serverIdentificationNumber]);
                     while (true) {
-                        PlayerToSend.ServerIdentificationNumber = serverIdentificationNumber;
+                        PlayerToSend.PlayerID = playerID;
                         data = Serialization.ObjectToByteArray(PlayerToSend);
                         stream.Write(data, 0, data.Length);
 
@@ -91,18 +85,9 @@ namespace GunsBullets {
 
         private void GetListOfOtherPlayerFromHost(NetworkStream stream) {
             _otherPlayers = Serialization.ReadListOfPlayersData(stream);
-            Console.WriteLine("                      L I S T A:                 \n");
+            Console.WriteLine("# LISTA GRACZY:");
             _otherPlayers.ForEach(Console.WriteLine);
-            foreach (Player player in _otherPlayers) {
-                player.DeathScream = _content.Load<SoundEffect>(Config.Sound_DeathScream);
-                player.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[player.ServerIdentificationNumber]);
-                foreach (Bullet bullet in player.MyBullets) {
-                    bullet.BulletTexture = _content.Load<Texture2D>(Config.BulletTexture);
-                    bullet.RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
-                    bullet.RicochetSounds[0] = _content.Load<SoundEffect>(Config.Sound_Ricochet1);
-                    bullet.RicochetSounds[1] = _content.Load<SoundEffect>(Config.Sound_Ricochet2);
-                }
-            }
+
             AddOrRefreshPlayers();
         }
 

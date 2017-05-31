@@ -1,3 +1,10 @@
+# Lines starting with the # character are comments. Empty lines are ignored.
+#
+# First line should be the map's width and height, followed by H lines with
+# W ints each. Objects you can place: "0" which is nothing, "1" which is a
+# wall and "2" being an ammo crate. These tokens are defined in Map.cs.
+
+30 21
 0 2 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 2 0
 0 0 0 1 1 1 1 0 0 0 1 1 1 1 1 1 1 0 0 1 1 1 1 1 1 1 1 1 0 0
 0 0 0 1 0 0 1 0 0 0 1 1 1 1 1 1 1 0 0 1 1 1 1 0 0 1 0 0 0 0

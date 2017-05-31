@@ -1,48 +1,42 @@
-﻿using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-
-using System.Net;
+﻿using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace GunsBullets {
     sealed class Host {
+        public static readonly Host instance = new Host(); // Only one instance!
 
-        //singleton example, only one instance exists at runtime
-        public static readonly Host instance = new Host();
-        TcpListener _serverSocket;
-        IPEndPoint _serverEndPoint;
-        TcpClient _client;
-        List<Player> _allPlayers;
-        ContentManager _content;
+        TcpListener serverSocket;
+        TcpClient client = null;
+        List<Player> players;
 
         internal List<Player> Guests { get; private set; }
 
         private Host() {
-            _serverEndPoint = new IPEndPoint(IPAddress.Parse(Interface.GetLocalIPAddress()), Config.Port);
-            _serverSocket = new TcpListener(_serverEndPoint);
-            _client = null;
+            serverSocket = new TcpListener(Config.Port);
             Guests = new List<Player>(Config.MaxNumberOfGuests);
         }
 
-        public void Start(ref List<Player> players, ContentManager contentP) {
-            _content = contentP;
-            _allPlayers = players;
-            _serverSocket.Start();
+        public void Start(ref List<Player> players) {
+            this.players = players;
+            serverSocket.Start();
         }
 
-        public void Stop(List<Player> players) {
-            if (_allPlayers.Count > 1)
-                _allPlayers.RemoveRange(1, _allPlayers.Count - 1);
-            _client.Close();
-            _serverSocket.Stop();
-            _client = null;
-            _serverSocket = null;
-            Console.WriteLine("Host finished working");
+        public void Stop() {
+            if (players.Count > 1) players.RemoveRange(1, players.Count - 1);
+            if (client != null) {
+                client.Close();
+                client = null;
+            }
+
+            if (serverSocket != null) {
+                serverSocket.Stop();
+                serverSocket = null;
+            }
+            
+            Console.WriteLine("Host stopped.");
         }
 
         public void AddNewListeningThread(int count) {
@@ -61,48 +55,37 @@ namespace GunsBullets {
         private void Listen() {
             Player guest = null;
             while (true) {
-                Console.Write("Waiting for a connection... ");
+                Console.WriteLine("Waiting for a connection... ");
                 // Perform a blocking call to accept requests.
                 // You could also user server.AcceptSocket() here.
-                _client = _serverSocket.AcceptTcpClient();
+                client = serverSocket.AcceptTcpClient();
                 Console.WriteLine("Connected!");
-                using (NetworkStream stream = _client.GetStream()) {
+                using (NetworkStream stream = client.GetStream()) {
 
-                    while (_client != null) {
+                    while (client != null) {
                         guest = Serialization.ReadPlayerData(stream);
                         bool newGuest = true;
                         foreach (Player actualGuest in Guests) {
-                            if (actualGuest.ServerIdentificationNumber == guest.ServerIdentificationNumber) {
-                                Guests[guest.ServerIdentificationNumber - 1] = guest;
+                            if (actualGuest.PlayerID == guest.PlayerID) {
+                                Guests[guest.PlayerID - 1] = guest;
                                 newGuest = false;
                                 break;
                             }
                         }
                         if (newGuest && Guests.Count < Config.MaxNumberOfGuests) {
                             //give him a key here
-                            guest.ServerIdentificationNumber = Guests.Count + 1;
+                            guest.PlayerID = Guests.Count + 1;
                             //add guest to actual guests
                             Guests.Add(guest);
-                            WritePlayerKey(guest.ServerIdentificationNumber, stream);
+                            WritePlayerKey(guest.PlayerID, stream);
                         }
-                        //update guests textures and soudeffects
-                        foreach (Player player in Guests) {
-                            player.DeathScream = _content.Load<SoundEffect>(Config.Sound_DeathScream);
-                            player.PlayerTexture = _content.Load<Texture2D>(Config.PlayerTexture[player.ServerIdentificationNumber]);
-                            foreach (Bullet bullet in player.MyBullets) {
-                                bullet.BulletTexture = _content.Load<Texture2D>(Config.BulletTexture);
-                                bullet.RicochetSounds = new SoundEffect[Config.RicochetesSoundsAmount];
-                                bullet.RicochetSounds[0] = _content.Load<SoundEffect>(Config.Sound_Ricochet1);
-                                bullet.RicochetSounds[1] = _content.Load<SoundEffect>(Config.Sound_Ricochet2);
-                            }
-                        }
-
+                        
                         //update players                     
-                        lock (_allPlayers) {
-                            _allPlayers[0].ServerIdentificationNumber = 0;
-                            if (_allPlayers.Count > 1)
-                                _allPlayers.RemoveRange(1, _allPlayers.Count - 1);
-                            _allPlayers.AddRange(Guests);
+                        lock (players) {
+                            players[0].PlayerID = 0;
+                            if (players.Count > 1)
+                                players.RemoveRange(1, players.Count - 1);
+                            players.AddRange(Guests);
                         }
 
                         //TODO consider monitors usage 
@@ -124,7 +107,7 @@ namespace GunsBullets {
         }
 
         private void WriteAllPlayersExceptGuest(Player guest, NetworkStream stream) {
-            var otherGuests = new List<Player>(_allPlayers);
+            var otherGuests = new List<Player>(players);
             otherGuests.Remove(guest);
             Byte[] b = Serialization.ObjectToByteArray(otherGuests);
             stream.Write(b, 0, b.Length);
