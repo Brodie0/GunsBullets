@@ -1,11 +1,8 @@
-﻿using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace GunsBullets {
     sealed class Guest {
@@ -13,7 +10,6 @@ namespace GunsBullets {
         TcpClient clientSocket;
         IPEndPoint serverEndPoint;
         private Int32 playerID;
-        private ContentManager _content;
         private List<Player> _otherPlayers;
         private List<Player> _allPlayers;
 
@@ -24,15 +20,14 @@ namespace GunsBullets {
             // Note, for this client to work you need to have a TcpServer 
             // connected to the same address as specified by the server, port
             // combination.
-            serverEndPoint = new IPEndPoint(IPAddress.Loopback, Config.Port);
+            serverEndPoint = new IPEndPoint(IPAddress.Parse(Config.IPHostname), Config.Port);
             clientSocket = new TcpClient();
             playerID = -1;
             _otherPlayers = new List<Player>(Config.MaxNumberOfGuests);
         }
 
-        public void Start(List<Player> allPlayers, ContentManager content) {
+        public void Start(List<Player> allPlayers) {
             _allPlayers = allPlayers;
-            _content = content;
             PlayerToSend = allPlayers[0];
         }
 
@@ -90,7 +85,7 @@ namespace GunsBullets {
 
         private void GetListOfOtherPlayerFromHost(NetworkStream stream) {
             _otherPlayers = Serialization.ReadListOfPlayersData(stream);
-            Console.WriteLine("                      L I S T A:                 \n");
+            Console.WriteLine("# LISTA GRACZY:");
             _otherPlayers.ForEach(Console.WriteLine);
 
             AddOrRefreshPlayers();

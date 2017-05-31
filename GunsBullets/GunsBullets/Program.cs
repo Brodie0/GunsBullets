@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 
 namespace GunsBullets {
     static class Program {
@@ -13,6 +14,7 @@ namespace GunsBullets {
                 }
             } catch (Exception e) {
                 Console.WriteLine(e.Message);
+                Debugger.Launch();
             }
         }
     }

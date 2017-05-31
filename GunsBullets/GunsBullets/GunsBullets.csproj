@@ -92,7 +92,8 @@
     </Compile>
     <Compile Include="Guest.cs" />
     <Compile Include="Host.cs" />
-    <Compile Include="Interface.cs" />
+    <Compile Include="OSD.cs" />
+    <Compile Include="Utilities.cs" />
     <Compile Include="Map.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

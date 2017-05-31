@@ -12,6 +12,8 @@ namespace GunsBullets {
         public static Texture2D Map, Wall;
         public static Texture2D Bullet, Ammo;
         public static Texture2D[] Player;
+
+        public static SpriteFont Font;
         
         public static void Initialize(ContentManager content) {
             Map = content.Load<Texture2D>("map");
@@ -21,6 +23,8 @@ namespace GunsBullets {
 
             Player = new Texture2D[4];
             for (int i = 0; i < 4; i++) Player[i] = content.Load<Texture2D>("soldier" + i.ToString());
+
+            Font = content.Load<SpriteFont>("font");
         }
     }
 

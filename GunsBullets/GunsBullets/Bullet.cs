@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 
 namespace GunsBullets {
     [Serializable]
@@ -19,12 +19,14 @@ namespace GunsBullets {
 
         public bool DestroyMe { get; set; }
         public Vector2 SpritePosition => _spritePosition;
-
         
+        public Bullet(ref GraphicsDeviceManager graphics, Vector2 playerPosition, float playerRotation, GameInput input, Vector2 playerOrigin) {
+            if (Config.DebugMode) {
+                Console.WriteLine("New bullet shot at: " + input.AimingDirection + ", from: " + playerPosition.ToString());
+            }
 
-        public Bullet(ref GraphicsDeviceManager graphics, ContentManager content, Vector2 playerPosition, float playerRotation, MouseState mouseState, Vector2 playerOrigin) {
-            var newX = Mouse.GetState().X + playerPosition.X - graphics.GraphicsDevice.Viewport.Width / 2;
-            var newY = Mouse.GetState().Y + playerPosition.Y - graphics.GraphicsDevice.Viewport.Height / 2;
+            float newX = input.AimingDirection.X + playerPosition.X;
+            float newY = input.AimingDirection.Y + playerPosition.Y;
             playerRotation -= Convert.ToSingle(Math.PI / 2.5);
             _origin = new Vector2(TextureAtlas.Bullet.Width / 2.0f, TextureAtlas.Bullet.Height / 2.0f);
             _spritePosition = new Vector2(Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Cos(playerRotation) + playerPosition.X + playerOrigin.X),
@@ -40,8 +42,7 @@ namespace GunsBullets {
             rng = new Random();
         }
 
-        public void UpdateBullet(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions, Texture2D wallTexture) {
-
+        public void Update(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions) {
             _spritePosition += _spriteSpeed;
             var maxX = TextureAtlas.Map.Width - TextureAtlas.Bullet.Width;
             const int minX = 0;
@@ -52,20 +53,20 @@ namespace GunsBullets {
             foreach (var wallPosition in wallPositions) {
 
                 var b = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), TextureAtlas.Bullet.Height / 2);
-                var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, wallTexture.Width, wallTexture.Height);
+                var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, TextureAtlas.Wall.Width, TextureAtlas.Wall.Height);
 
                 if (Collisions.Intersects(b, r)) {
                     double wy = (b.Radius + r.Height / 2) * (b.Center.Y - r.Center.Y);
                     double hx = (b.Radius + r.Width / 2) * (b.Center.X - r.Center.X);
                     if (wy > hx) {
                         if (wy > -hx && _spriteSpeed.Y < 0)
-                            RicochetOrDestruction(false, (int)wallPosition.Y + wallTexture.Height + (int)TextureAtlas.Bullet.Height/2);
+                            RicochetOrDestruction(false, (int)wallPosition.Y + TextureAtlas.Wall.Height + (int)TextureAtlas.Bullet.Height/2);
                         else if (wy <= -hx && _spriteSpeed.X > 0)
                             RicochetOrDestruction(true, (int)wallPosition.X - (int)TextureAtlas.Bullet.Width/2);
                     }
                     else {
                         if (wy > -hx && _spriteSpeed.X < 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X + wallTexture.Width + (int)TextureAtlas.Bullet.Width/2);
+                            RicochetOrDestruction(true, (int)wallPosition.X + TextureAtlas.Wall.Width + (int)TextureAtlas.Bullet.Width/2);
                         else if (wy <= -hx && _spriteSpeed.Y > 0) {
                             RicochetOrDestruction(false, (int)wallPosition.Y - (int)TextureAtlas.Bullet.Height/2);
                         }

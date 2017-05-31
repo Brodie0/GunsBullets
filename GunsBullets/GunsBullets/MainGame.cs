@@ -1,14 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Microsoft.Xna.Framework.Media;
 using System.Threading.Tasks;
-using System.Net;
+using System.Collections.Generic;
+
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GunsBullets {
     public class MainGame : Microsoft.Xna.Framework.Game {
@@ -22,7 +18,7 @@ namespace GunsBullets {
         private List<Bullet> allBullets;
         private int _fireIter;
         private Map map;
-        private Interface interf;
+        private GameInput input;
         private bool ifPressReload;
 
         public MainGame() {
@@ -45,14 +41,21 @@ namespace GunsBullets {
             base.Initialize();
 
             try {
-                Window.Title = string.Format("[{0}] GunsBullets", Interface.GetLocalIPAddress());
+                Window.Title = string.Format("[{0}:{1}] GunsBullets", Utilities.GetLocalIPAddress(), Config.Port);
             } catch {
                 Window.Title = "[UNKNOWN!] GunsBullets";
             }
+
+            if (Config.HostGame) {
+                Host.instance.Start(ref players);
+                Host.instance.AddNewListeningThread(Config.MaxNumberOfGuests);
+            } else { // Guest!
+                Guest.instance.Start(players);
+                Task.Factory.StartNew(() => Guest.instance.StartCommunicationThread());
+            }
         }
 
-        private void UpdateViewMatrix()
-        {
+        private void UpdateViewMatrix() {
             viewMatrix = Matrix.CreateTranslation(m_halfViewSize.X - _cameraPosition.X, m_halfViewSize.Y - _cameraPosition.Y, 0.0f);
         }
 
@@ -67,11 +70,11 @@ namespace GunsBullets {
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
             players.Add(new Player(Content));
-            _cameraPosition = players[0].SpritePosition;
+            _cameraPosition = players[0].Position;
             m_halfViewSize = new Vector2(gdm.GraphicsDevice.Viewport.Width * 0.5f, gdm.GraphicsDevice.Viewport.Height * 0.5f);
             UpdateViewMatrix();
             map = new Map(Content);
-            interf = new Interface();
+            input = new GameInput(gdm);
         }
 
         /// <summary>
@@ -91,96 +94,64 @@ namespace GunsBullets {
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime) {
 
-            interf.Update();
-            if (interf.Hosting == true) {
-                //TODO host and guest Task variables are just for checking existance of those objects, could be replaced by booleans
-                //or just other ideas for checking
-                if (interf.InitializeHost) {
-                    lock (Content)
-                        Host.instance.Start(ref players, Content);
-                    Host.instance.AddNewListeningThread(Config.MaxNumberOfGuests);
-                    interf.InitializeHost = false;
+            input.Update();
+            OSD.Update(gameTime);
+
+            if (!Config.HostGame) {
+                lock (Guest.instance.PlayerToSend) {
+                    Guest.instance.PlayerToSend = players.First();
                 }
-            }
-            else if (interf.StopHosting) {
-                Host.instance.Stop(players);
-                interf.StopHosting = false;
             }
 
-            if (interf.Guesting) {
-                if (interf.InitializeGuest) {
-                    lock (Content)
-                        Guest.instance.Start(players, Content);
-                    Task.Factory.StartNew(() => Guest.instance.StartCommunicationThread());
-                    interf.InitializeGuest = false;
-                }
-                else {
-                    lock(Guest.instance.PlayerToSend){
-                        Guest.instance.PlayerToSend = players.First();
-                    }
-                }
-            }
-            else if (interf.StopGuesting) {
-                Guest.instance.Stop();
-                interf.StopGuesting = false;
-            }
-
-            if (interf.ToggleFullScreen) {
+            if (input.ToggleFullScreen) {
                 gdm.ToggleFullScreen();
-                interf.ToggleFullScreen = false;
+                input.ToggleFullScreen = false;
             }
-                
 
-            Player player1 = players.First();
-            player1.UpdatePlayer(ref gdm, ref map, ref allBullets, map.WallPositions, TextureAtlas.Wall);
-            if (player1.UpdateReloadPosition(map.AmmoPositions) && Keyboard.GetState().IsKeyDown(Keys.R) && !ifPressReload) {
+            Player localPlayer = players.First();
+            localPlayer.UpdatePlayer(ref gdm, input, ref map, ref allBullets, map.WallPositions);
+            if (localPlayer.UpdateReloadPosition(map.AmmoPositions) && input.Reload && !ifPressReload) {
                 ifPressReload = true;
-                lock (Content)
-                    player1.AmmoReload(Content);
+                localPlayer.AmmoReload(Content);
             }
-            if (player1.UpdateReloadPosition(map.AmmoPositions) && Keyboard.GetState().IsKeyUp(Keys.R) && ifPressReload)
+
+            if (localPlayer.UpdateReloadPosition(map.AmmoPositions) && !input.Reload && ifPressReload) {
                 ifPressReload = false;
-            //update only if window is focused
-            if (IsActive) {
-                //shooting
-                if (player1.ContinuousFire) {
-                    if (_fireIter == Config.FireRate) {
-                        Bullet bullet = null;
-                        lock (Content)
-                            bullet = new Bullet(ref gdm, Content, player1.SpritePosition, player1.Rotation,
-                            player1.OldMouseState, player1.Origin);
-                        player1.DecreaseAmmo();
-                        player1.MyBullets.Add(bullet);
-                        _fireIter = 0;
-                    }
-                    else
-                        _fireIter++;
-                }
-                else if (player1.SingleShot) {
-                    Bullet bullet = null;
-                    lock (Content)
-                        bullet = new Bullet(ref gdm, Content, player1.SpritePosition, player1.Rotation,
-                        player1.OldMouseState, player1.Origin);
-                    player1.DecreaseAmmo();
-                    player1.MyBullets.Add(bullet);
-                }
-                else if (!player1.ContinuousFire)
-                    _fireIter = 0;
-
-                _cameraPosition = player1.SpritePosition;
-                UpdateViewMatrix();
             }
 
-            player1.MyBullets.RemoveAll(b => b.DestroyMe);
+            _cameraPosition = localPlayer.Position;
+            UpdateViewMatrix();
+
+            
+            if (IsActive) { // update only if window is focused
+                if (localPlayer.ContinuousFire) { //shooting
+                    if (_fireIter == Config.FireRate) {
+                        Bullet bullet = new Bullet(ref gdm, localPlayer.Position, localPlayer.Rotation, input, localPlayer.Origin);
+                        localPlayer.DecreaseAmmo();
+                        localPlayer.MyBullets.Add(bullet);
+                        _fireIter = 0;
+                    } else _fireIter++;
+                } else if (localPlayer.SingleShot) {
+                    Bullet bullet = new Bullet(ref gdm, localPlayer.Position, localPlayer.Rotation, input, localPlayer.Origin);
+                    localPlayer.DecreaseAmmo();
+                    localPlayer.MyBullets.Add(bullet);
+                } else if (!localPlayer.ContinuousFire) {
+                    _fireIter = 0;
+                }
+            }
+
+            localPlayer.MyBullets.RemoveAll(b => b.DestroyMe);
             allBullets.Clear();
             lock (players) {
                 foreach (Player p in players) {
                     allBullets = allBullets.Concat(p.MyBullets).ToList();
                 }
             }
-            foreach (var bullet in player1.MyBullets) {
-                bullet.UpdateBullet(ref gdm, ref map, map.WallPositions, TextureAtlas.Wall);
+
+            foreach (var bullet in localPlayer.MyBullets) {
+                bullet.Update(ref gdm, ref map, map.WallPositions);
             }
+
             base.Update(gameTime);
         }
 
@@ -195,6 +166,7 @@ namespace GunsBullets {
                 map.DrawMap(ref spriteBatch);
                 lock (players) foreach (var player in players) player.DrawPlayer(ref spriteBatch);
                 lock (allBullets) foreach (var bullet in allBullets) bullet.DrawBullet(ref spriteBatch);
+                OSD.Draw(ref gdm, ref spriteBatch, _cameraPosition - m_halfViewSize);
             } spriteBatch.End();
             base.Draw(gameTime);
         }

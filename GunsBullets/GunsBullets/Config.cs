@@ -1,10 +1,4 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace GunsBullets {
+﻿namespace GunsBullets {
     class Config {
         // TODO: Remove this wherever it's used - used to load map data etc, will
         // break once the project is built and released without the source code!
@@ -13,7 +7,7 @@ namespace GunsBullets {
         public static string WallAndAmmoPositions = "mapa.txt";
         
         //other
-        public static int RicochetesSoundsAmount = 2;
+        public static int RicochetSounds = 2;
         public static int FireRate = 10;
         public static int BulletAppearDistanceFromPlayer = 15;
         public static float BulletSpeed = 15.0f;
@@ -27,10 +21,13 @@ namespace GunsBullets {
         public static int SendingPackagesDelay = 5;
 
         // These settings can be changed with the GameConfigurator:
+        public static string Nickname = "Player";
         public static string IPHostname = "127.0.0.1";
         public static short Port = 8888;
+
         public static bool HostGame = false;
         public static bool DebugMode = true;
         public static bool FullScreen = false;
+        public static bool GamePadEnabled = false;
     }
 }
