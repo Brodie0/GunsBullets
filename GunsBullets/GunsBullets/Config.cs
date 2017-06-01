@@ -1,10 +1,8 @@
 ﻿namespace GunsBullets {
     class Config {
-        // TODO: Remove this wherever it's used - used to load map data etc, will
-        // break once the project is built and released without the source code!
         // Map tokens are now defined in Map.cs (during the loading).
-        public static string ContentPath = "..\\..\\..\\..\\GunsBulletsContent\\";
-        public static string WallAndAmmoPositions = "mapa.txt";
+        public static string ContentPath = "Content";
+        public static string WallAndAmmoPositions = "\\mapa";
         
         //other
         public static int RicochetSounds = 2;
