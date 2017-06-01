@@ -4,6 +4,7 @@ using System.Net.Sockets;
 
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace GunsBullets {
     class GameInput {
@@ -142,7 +143,7 @@ namespace GunsBullets {
         }
     }
 
-    class Utilities {
+    public static class Utilities {
         public static string GetLocalIPAddress() {
             var host = Dns.GetHostEntry(Dns.GetHostName());
             foreach (var ip in host.AddressList) {
@@ -173,6 +174,10 @@ namespace GunsBullets {
             if (value < clampFrom) return clampFrom;
             else if (value > clampTo) return clampTo;
             else return value;
+        }
+
+        public static Vector2 GetDimensions(this Texture2D texture) {
+            return new Vector2(texture.Width, texture.Height);
         }
     }
 }

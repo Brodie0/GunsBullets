@@ -58,12 +58,20 @@ namespace GunsBullets {
 
             // Collision: Walls
             foreach (var wallPosition in wallPositions) {
-                var p = new BoundingSphere(new Vector3(Position + Origin, 0), PlayerTexture.Height / 2);
-                var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, TextureAtlas.Wall.Width, TextureAtlas.Wall.Height);
+                var playerBound = new BoundingSphere(new Vector3(Position + Origin, 0), PlayerTexture.Height / 2);
+                var wallBound = new BoundingBox(new Vector3(wallPosition, 0),
+                    new Vector3(wallPosition + TextureAtlas.Wall.GetDimensions(), 0));
 
-                if (Collisions.Intersects(p, r)) {
-                    double wy = (p.Radius + r.Height / 2) * (p.Center.Y - r.Center.Y);
-                    double hx = (p.Radius + r.Width / 2) * (p.Center.X - r.Center.X);
+                // TODO: Implement this via movement preview. tl;dr apply Speed to a temporary position Vec2, see
+                // what we're colliding with, correct speed to avoid collisions, apply that speed on this.Position.
+
+                // Removing our custom collision detection no longer lets us "smoothly" move while being too close
+                // to the walls, so it was probably subtly buggy/inaccurate and we kind of didn't notice.
+
+                if (playerBound.Intersects(wallBound)) {
+                    var wallCenter = Vector3.Lerp(wallBound.Min, wallBound.Max, 0.5f);
+                    double wy = (playerBound.Radius + TextureAtlas.Wall.Height / 2) * (playerBound.Center.Y - wallCenter.Y);
+                    double hx = (playerBound.Radius + TextureAtlas.Wall.Width / 2) * (playerBound.Center.X - wallCenter.X);
                     if (wy > hx) {
                         if (wy > -hx && PositionDelta.Y < 0) PositionDelta.Y = 0;
                         else if (wy <= -hx && PositionDelta.X > 0) PositionDelta.X = 0;
@@ -115,8 +123,8 @@ namespace GunsBullets {
             //distance between player's and bullet's centres
             foreach (var bullet in bullets) {
                 var distance = Convert.ToSingle(
-                    Math.Sqrt(Math.Pow(bullet.SpritePosition.X - Position.X - Origin.X, 2) +
-                              Math.Pow(bullet.SpritePosition.Y - Position.Y - Origin.Y, 2)));
+                    Math.Sqrt(Math.Pow(bullet.Position.X - Position.X - Origin.X, 2) +
+                              Math.Pow(bullet.Position.Y - Position.Y - Origin.Y, 2)));
                 if (!(distance > bullet.Radius + bodyRadius)) {
                     OnHitReact();
                     bullet.DestroyMe = true;

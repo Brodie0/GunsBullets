@@ -126,13 +126,13 @@ namespace GunsBullets {
             if (IsActive) { // update only if window is focused
                 if (localPlayer.ContinuousFire) { //shooting
                     if (_fireIter == Config.FireRate) {
-                        Bullet bullet = new Bullet(ref gdm, localPlayer.Position, localPlayer.Rotation, input, localPlayer.Origin);
+                        Bullet bullet = new Bullet(ref gdm, localPlayer, input);
                         localPlayer.DecreaseAmmo();
                         localPlayer.MyBullets.Add(bullet);
                         _fireIter = 0;
                     } else _fireIter++;
                 } else if (localPlayer.SingleShot) {
-                    Bullet bullet = new Bullet(ref gdm, localPlayer.Position, localPlayer.Rotation, input, localPlayer.Origin);
+                    Bullet bullet = new Bullet(ref gdm, localPlayer, input);
                     localPlayer.DecreaseAmmo();
                     localPlayer.MyBullets.Add(bullet);
                 } else if (!localPlayer.ContinuousFire) {

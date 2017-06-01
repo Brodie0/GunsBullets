@@ -8,105 +8,106 @@ using Microsoft.Xna.Framework.Graphics;
 namespace GunsBullets {
     [Serializable]
     class Bullet {
-        public int OwnerID { get; set; }
-
-        private readonly Vector2 _origin;
-        private Vector2 _spritePosition;
-        private Vector2 _spritePositionPrev;
-        private Vector2 _spriteSpeed;
-        public float Radius { get; private set; }
-        private Random rng;
-
-        public bool DestroyMe { get; set; }
-        public Vector2 SpritePosition => _spritePosition;
+        [NonSerialized] public Player Owner;
+        [NonSerialized] private Random rng = new Random();
         
-        public Bullet(ref GraphicsDeviceManager graphics, Vector2 playerPosition, float playerRotation, GameInput input, Vector2 playerOrigin) {
-            if (Config.DebugMode) {
-                Console.WriteLine("New bullet shot at: " + input.AimingDirection + ", from: " + playerPosition.ToString());
-            }
+        public Vector2 Position;
+        private Vector2 PreviousPosition;
+        private Vector2 Speed;
+        public bool DestroyMe = false;
 
-            float newX = input.AimingDirection.X + playerPosition.X;
-            float newY = input.AimingDirection.Y + playerPosition.Y;
-            playerRotation -= Convert.ToSingle(Math.PI / 2.5);
-            _origin = new Vector2(TextureAtlas.Bullet.Width / 2.0f, TextureAtlas.Bullet.Height / 2.0f);
-            _spritePosition = new Vector2(Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Cos(playerRotation) + playerPosition.X + playerOrigin.X),
-                Convert.ToSingle(Config.BulletAppearDistanceFromPlayer * Math.Sin(playerRotation) + playerPosition.Y + playerOrigin.Y));
-            _spritePositionPrev = _spritePosition;
-            float distance = Convert.ToSingle(Math.Sqrt(Math.Pow(newX - _spritePosition.X, 2.0) + Math.Pow(newY - _spritePosition.Y, 2.0)));
-            _spriteSpeed = new Vector2((newX - _spritePosition.X) * Config.BulletSpeed / distance, (newY - _spritePosition.Y) * Config.BulletSpeed / distance);
-            DestroyMe = false;
+        public readonly Vector2 Origin = new Vector2(TextureAtlas.Bullet.Width / 2.0f, TextureAtlas.Bullet.Height / 2.0f);
+        public float Radius { get; private set; } = (TextureAtlas.Bullet.Width / 2.0f + TextureAtlas.Bullet.Height / 2.0f) / 2.0f;
+
+        public Bullet(ref GraphicsDeviceManager graphics, Player shooter, GameInput input) {
+            Owner = shooter;
+
+            // TODO: Initial pos should be calculated by having a BulletSpawner in front of the player.
+            // Instead of looking at specific (X, Y) to aim at, this would prevent self-shooting and
+            // fix odd behaviours while using thumbsticks on a gamepad.
+            
+            Position = new Vector2(
+                (float)(Config.BulletAppearDistanceFromPlayer * Math.Cos(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.X + Owner.Origin.X),
+                (float)(Config.BulletAppearDistanceFromPlayer * Math.Sin(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.Y + Owner.Origin.Y));
+            PreviousPosition = Position;
+
+            Vector2 newXY = input.AimingDirection + Owner.Position;
+            Speed = (newXY - Position) * (Config.BulletSpeed / Vector2.Distance(newXY, Position));
             AudioAtlas.Shot.Play();
-
-            Radius = (TextureAtlas.Bullet.Width / 2.0f + TextureAtlas.Bullet.Height / 2.0f) / 2.0f;
-
-            rng = new Random();
         }
 
         public void Update(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions) {
-            _spritePosition += _spriteSpeed;
+            Position += Speed;
+
             var maxX = TextureAtlas.Map.Width - TextureAtlas.Bullet.Width;
-            const int minX = 0;
             var maxY = TextureAtlas.Map.Height - TextureAtlas.Bullet.Height;
-            const int minY = 0;
 
-            //ricochete off walls
+            // Ricochet off walls
             foreach (var wallPosition in wallPositions) {
+                var bulletBound = new BoundingSphere(new Vector3(Position + Origin, 0),
+                    TextureAtlas.Bullet.Height / 2);
 
-                var b = new BoundingSphere(new Vector3(_spritePosition + _origin, 0), TextureAtlas.Bullet.Height / 2);
-                var r = new Rectangle((int)wallPosition.X, (int)wallPosition.Y, TextureAtlas.Wall.Width, TextureAtlas.Wall.Height);
+                var wallBound = new BoundingBox(new Vector3(wallPosition, 0),
+                    new Vector3(wallPosition + TextureAtlas.Wall.GetDimensions(), 0));
+                
+                if (bulletBound.Intersects(wallBound)) {
+                    if (wallBound.Contains(bulletBound) == ContainmentType.Contains) {
+                        // If the bullet is already WITHIN the wall, just remove it. This
+                        // drastically decreases ricochet chances due to the way we handle
+                        // collisions, but prevents SHOOTING THROUGH WALLS, which is nice.
 
-                if (Collisions.Intersects(b, r)) {
-                    double wy = (b.Radius + r.Height / 2) * (b.Center.Y - r.Center.Y);
-                    double hx = (b.Radius + r.Width / 2) * (b.Center.X - r.Center.X);
-                    if (wy > hx) {
-                        if (wy > -hx && _spriteSpeed.Y < 0)
-                            RicochetOrDestruction(false, (int)wallPosition.Y + TextureAtlas.Wall.Height + (int)TextureAtlas.Bullet.Height/2);
-                        else if (wy <= -hx && _spriteSpeed.X > 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X - (int)TextureAtlas.Bullet.Width/2);
+                        DestroyMe = true;
+                        return; // Let's look no more at anything else below.
                     }
-                    else {
-                        if (wy > -hx && _spriteSpeed.X < 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X + TextureAtlas.Wall.Width + (int)TextureAtlas.Bullet.Width/2);
-                        else if (wy <= -hx && _spriteSpeed.Y > 0) {
-                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)TextureAtlas.Bullet.Height/2);
+
+                    var wallCenter = Vector3.Lerp(wallBound.Min, wallBound.Max, 0.5f);
+                    double wy = (bulletBound.Radius + TextureAtlas.Wall.Height / 2) * (bulletBound.Center.Y - wallCenter.Y);
+                    double hx = (bulletBound.Radius + TextureAtlas.Wall.Width / 2) * (bulletBound.Center.X - wallCenter.X);
+
+                    if (wy > hx) {
+                        if (wy > -hx && Speed.Y < 0)
+                            RicochetOrDestruction(false, (int)wallPosition.Y + TextureAtlas.Wall.Height + (int)TextureAtlas.Bullet.Height / 2);
+                        else if (wy <= -hx && Speed.X > 0)
+                            RicochetOrDestruction(true, (int)wallPosition.X - (int)TextureAtlas.Bullet.Width / 2);
+                    } else {
+                        if (wy > -hx && Speed.X < 0)
+                            RicochetOrDestruction(true, (int)wallPosition.X + TextureAtlas.Wall.Width + (int)TextureAtlas.Bullet.Width / 2);
+                        else if (wy <= -hx && Speed.Y > 0) {
+                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)TextureAtlas.Bullet.Height / 2);
                         }
                     }
+
+                    break; // We've found the wall we've hit!
                 }
             }
 
-            //ricochete off borders
-            if (_spritePosition.Y < minY)
-                RicochetOrDestruction(false, minY);
-            else if (_spritePosition.Y > maxY)
-                RicochetOrDestruction(false, maxY);
-            if (_spritePosition.X < minX)
-                RicochetOrDestruction(true, minX);
-            else if (_spritePosition.X > maxX)
-                RicochetOrDestruction(true, maxX);
+            // Ricochet off borders
+            if (Position.Y < 0) RicochetOrDestruction(false, 0);
+            else if (Position.Y > maxY) RicochetOrDestruction(false, maxY);
 
-            _spritePositionPrev = _spritePosition;
+            if (Position.X < 0) RicochetOrDestruction(true, 0);
+            else if (Position.X > maxX) RicochetOrDestruction(true, maxX);
+
+            PreviousPosition = Position;
         }
 
         public void DrawBullet(ref SpriteBatch spriteBatch) {
-            spriteBatch.Draw(TextureAtlas.Bullet, _spritePosition - _origin, Color.White);
+            spriteBatch.Draw(TextureAtlas.Bullet, Position - Origin, Color.White);
         }
 
         private void RicochetOrDestruction(bool verticalWall, int border) {
             if (rng.Next(Config.RicochetProbability) == 0) {
-                _spriteSpeed.X *= verticalWall ? -1 : 1;
-                _spriteSpeed.Y *= verticalWall ? 1 : -1;
+                Speed.X *= verticalWall ? -1 : 1;
+                Speed.Y *= verticalWall ? 1 : -1;
                 AudioAtlas.Ricochet[rng.Next(AudioAtlas.Ricochet.Length)].Play();
             } else DestroyMe = true;
 
-            if (!verticalWall) _spritePosition.Y = border;
-            else _spritePosition.X = border;
+            if (!verticalWall) Position.Y = border;
+            else Position.X = border;
         }
 
         public override string ToString() {
-            string s1 = _origin.ToString();
-            string s2 = _spritePosition.ToString();
-            string s3 = _spriteSpeed.ToString();
-            return "\nOrigin: " + s1 + "\nSpritePosition: " + s2 + "\nSpriteSpeed: " + s3 + "\nDestroyMe: " + DestroyMe + "\n";
+            return $"Pos: {Position}, Origin: {Origin}, Speed: {Speed} " + (DestroyMe ? "[DESTROYABLE]" : "[OK]");
         }
     }
 }
