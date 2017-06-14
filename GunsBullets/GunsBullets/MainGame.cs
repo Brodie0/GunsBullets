@@ -35,7 +35,6 @@ namespace GunsBullets {
         protected override void Initialize() {
             players = new List<Player>();
             allBullets = new List<Bullet>();
-            ifPressReload = false;
             _fireIter = 0;
             IsMouseVisible = true;
             base.Initialize();
@@ -65,11 +64,13 @@ namespace GunsBullets {
         /// </summary>
         protected override void LoadContent() {
             base.LoadContent();
-            TextureAtlas.Initialize(Content);
+            TextureAtlas.Initialize(Content, gdm.GraphicsDevice);
             AudioAtlas.Initialize(Content);
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
-            players.Add(new Player(Content));
+            players.Add(new Player(Content, Config.Nickname));
+            OSD.playerToTrack = players[0];
+
             _cameraPosition = players[0].Position;
             m_halfViewSize = new Vector2(gdm.GraphicsDevice.Viewport.Width * 0.5f, gdm.GraphicsDevice.Viewport.Height * 0.5f);
             UpdateViewMatrix();
@@ -109,16 +110,8 @@ namespace GunsBullets {
             }
 
             Player localPlayer = players.First();
-            localPlayer.UpdatePlayer(ref gdm, input, ref map, ref allBullets, map.WallPositions);
-            if (localPlayer.UpdateReloadPosition(map.AmmoPositions) && input.Reload && !ifPressReload) {
-                ifPressReload = true;
-                localPlayer.AmmoReload(Content);
-            }
-
-            if (localPlayer.UpdateReloadPosition(map.AmmoPositions) && !input.Reload && ifPressReload) {
-                ifPressReload = false;
-            }
-
+            localPlayer.UpdatePlayer(ref gdm, input, ref map, ref allBullets, map.Walls);
+            
             _cameraPosition = localPlayer.Position;
             UpdateViewMatrix();
 
@@ -149,7 +142,7 @@ namespace GunsBullets {
             }
 
             foreach (var bullet in localPlayer.MyBullets) {
-                bullet.Update(ref gdm, ref map, map.WallPositions);
+                bullet.Update(ref gdm, ref map, map.Walls);
             }
 
             base.Update(gameTime);

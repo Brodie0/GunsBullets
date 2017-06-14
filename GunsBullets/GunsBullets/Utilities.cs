@@ -16,8 +16,8 @@ namespace GunsBullets {
         public bool ShootPreviously { get; set; } = false;
         public bool Shoot { get; set; } = false;
         
-        public Vector2 MovementDirection { get; set; } = Vector2.Zero;
-        public Vector2 AimingDirection { get; set; } = Vector2.Zero;
+        public Vector2 MovementDirection = Vector2.Zero;
+        public Vector2 AimingDirection = Vector2.Zero;
 
         public GameInput(GraphicsDeviceManager gdm) {
             this.gdm = gdm;
@@ -33,9 +33,14 @@ namespace GunsBullets {
         
         public void Update() {
             ShootPreviously = Shoot;
+            MovementDirection = Vector2.Zero;
 
             if (Config.GamePadEnabled) UpdateGamePadInput();
             else UpdateKeyboardInput();
+
+            // Normalization converts this vector to a **UNIT** vector which
+            // points in the same direction. (Unit Vec => Vec2.Length() == 1.)
+            if (AimingDirection != Vector2.Zero) AimingDirection.Normalize();
         }
 
         // --- PC Master Race Input Support ---
@@ -66,25 +71,20 @@ namespace GunsBullets {
             ToggleFullScreen = IsKeyTapped(Keys.F);
             Reload = IsKeyTapped(Keys.R);
             Shoot = CurrentMouseState.LeftButton == ButtonState.Pressed;
+            
+            if (IsKeyPressed(Keys.A, Keys.Left) && IsKeyPressed(Keys.D, Keys.Right)) MovementDirection.X = 0.0f;
+            else if (IsKeyPressed(Keys.A, Keys.Left)) MovementDirection.X = -1.0f;
+            else if (IsKeyPressed(Keys.D, Keys.Right)) MovementDirection.X = 1.0f;
 
-            Vector2 Movement = Vector2.Zero;
-            Vector2 Aiming = Vector2.Zero;
-
-            if (IsKeyPressed(Keys.A, Keys.Left) && IsKeyPressed(Keys.D, Keys.Right)) Movement.X = 0.0f;
-            else if (IsKeyPressed(Keys.A, Keys.Left)) Movement.X = -1.0f;
-            else if (IsKeyPressed(Keys.D, Keys.Right)) Movement.X = 1.0f;
-
-            if (IsKeyPressed(Keys.W, Keys.Up) && IsKeyPressed(Keys.S, Keys.Down)) Movement.Y = 0.0f;
-            else if (IsKeyPressed(Keys.W, Keys.Up)) Movement.Y = -1.0f;
-            else if (IsKeyPressed(Keys.S, Keys.Down)) Movement.Y = 1.0f;
+            if (IsKeyPressed(Keys.W, Keys.Up) && IsKeyPressed(Keys.S, Keys.Down)) MovementDirection.Y = 0.0f;
+            else if (IsKeyPressed(Keys.W, Keys.Up)) MovementDirection.Y = -1.0f;
+            else if (IsKeyPressed(Keys.S, Keys.Down)) MovementDirection.Y = 1.0f;
             
             if (Utilities.IsMouseInsideWindow(gdm, CurrentMouseState)) {
-                Aiming.X = CurrentMouseState.X - MouseOffsetX;
-                Aiming.Y = CurrentMouseState.Y - MouseOffsetY;
+                AimingDirection.X = CurrentMouseState.X - MouseOffsetX;
+                AimingDirection.Y = CurrentMouseState.Y - MouseOffsetY;
             }
-
-            MovementDirection = Movement;
-            AimingDirection = Aiming;
+            
             PreviousKeyboardState = CurrentKeyboardState;
         }
 
@@ -110,35 +110,32 @@ namespace GunsBullets {
             ToggleFullScreen = IsGamePadButtonTapped(Buttons.Back);
             Reload = IsGamePadButtonTapped(Buttons.X);
             Shoot = IsGamePadButtonPressed(Buttons.RightShoulder, Buttons.LeftShoulder);
-
-            Vector2 Movement = Vector2.Zero;
-            Vector2 Aiming = Vector2.Zero;
-
+            
             if (IsGamePadButtonPressed(Buttons.DPadLeft, Buttons.LeftThumbstickLeft)) {
-                if (IsGamePadButtonPressed(Buttons.DPadLeft)) Movement.X = -1.0f;
-                else Movement.X = CurrentGamePadState.ThumbSticks.Left.X;
+                if (IsGamePadButtonPressed(Buttons.DPadLeft)) MovementDirection.X = -1.0f;
+                else MovementDirection.X = CurrentGamePadState.ThumbSticks.Left.X;
             }
 
             if (IsGamePadButtonPressed(Buttons.DPadRight, Buttons.LeftThumbstickRight)) {
-                if (IsGamePadButtonPressed(Buttons.DPadRight)) Movement.X = 1.0f;
-                else Movement.X = CurrentGamePadState.ThumbSticks.Left.X;
+                if (IsGamePadButtonPressed(Buttons.DPadRight)) MovementDirection.X = 1.0f;
+                else MovementDirection.X = CurrentGamePadState.ThumbSticks.Left.X;
             }
 
             if (IsGamePadButtonPressed(Buttons.DPadUp, Buttons.LeftThumbstickUp)) {
-                if (IsGamePadButtonPressed(Buttons.DPadUp)) Movement.Y = -1.0f;
-                else Movement.Y = -CurrentGamePadState.ThumbSticks.Left.Y;
+                if (IsGamePadButtonPressed(Buttons.DPadUp)) MovementDirection.Y = -1.0f;
+                else MovementDirection.Y = -CurrentGamePadState.ThumbSticks.Left.Y;
             }
 
             if (IsGamePadButtonPressed(Buttons.DPadDown, Buttons.LeftThumbstickDown)) {
-                if (IsGamePadButtonPressed(Buttons.DPadDown)) Movement.Y = 1.0f;
-                else Movement.Y = -CurrentGamePadState.ThumbSticks.Left.Y;
+                if (IsGamePadButtonPressed(Buttons.DPadDown)) MovementDirection.Y = 1.0f;
+                else MovementDirection.Y = -CurrentGamePadState.ThumbSticks.Left.Y;
             }
-            
-            Aiming.X = CurrentGamePadState.ThumbSticks.Right.X * 100.0f;
-            Aiming.Y = -CurrentGamePadState.ThumbSticks.Right.Y * 100.0f;
 
-            MovementDirection = Movement;
-            AimingDirection = Aiming;
+            if (CurrentGamePadState.ThumbSticks.Right != Vector2.Zero) {
+                AimingDirection = CurrentGamePadState.ThumbSticks.Right;
+                AimingDirection.Y = -AimingDirection.Y;
+            }
+
             PreviousGamePadState = CurrentGamePadState;
         }
     }
@@ -174,6 +171,14 @@ namespace GunsBullets {
             if (value < clampFrom) return clampFrom;
             else if (value > clampTo) return clampTo;
             else return value;
+        }
+
+        public static bool IsWithin(this float number, Vector2 range) {
+            return (number >= range.X && number <= range.Y);
+        }
+
+        public static bool IsWithin(this float number, float center, float range) {
+            return (number >= center - range && number <= center + range);
         }
 
         public static Vector2 GetDimensions(this Texture2D texture) {

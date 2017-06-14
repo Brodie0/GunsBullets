@@ -12,7 +12,6 @@ namespace GunsBullets {
         [NonSerialized] private Random rng = new Random();
         
         public Vector2 Position;
-        private Vector2 PreviousPosition;
         private Vector2 Speed;
         public bool DestroyMe = false;
 
@@ -27,31 +26,29 @@ namespace GunsBullets {
             // fix odd behaviours while using thumbsticks on a gamepad.
             
             Position = new Vector2(
-                (float)(Config.BulletAppearDistanceFromPlayer * Math.Cos(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.X + Owner.Origin.X),
-                (float)(Config.BulletAppearDistanceFromPlayer * Math.Sin(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.Y + Owner.Origin.Y));
-            PreviousPosition = Position;
+                (float)(Config.BulletAppearDistanceFromPlayer * Math.Cos(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.X),
+                (float)(Config.BulletAppearDistanceFromPlayer * Math.Sin(Owner.Rotation - (Math.PI / 2.5)) + Owner.Position.Y));
 
-            Vector2 newXY = input.AimingDirection + Owner.Position;
-            Speed = (newXY - Position) * (Config.BulletSpeed / Vector2.Distance(newXY, Position));
+            Console.WriteLine($"Aiming at: {input.AimingDirection}");
+            Speed = input.AimingDirection * Config.BulletSpeed;
             AudioAtlas.Shot.Play();
         }
 
-        public void Update(ref GraphicsDeviceManager graphics, ref Map map, List<Vector2> wallPositions) {
+        public void Update(ref GraphicsDeviceManager graphics, ref Map map, List<Wall> walls) {
             Position += Speed;
 
             var maxX = TextureAtlas.Map.Width - TextureAtlas.Bullet.Width;
             var maxY = TextureAtlas.Map.Height - TextureAtlas.Bullet.Height;
 
-            // Ricochet off walls
-            foreach (var wallPosition in wallPositions) {
-                var bulletBound = new BoundingSphere(new Vector3(Position + Origin, 0),
-                    TextureAtlas.Bullet.Height / 2);
+            BoundingSphere bulletBound = new BoundingSphere(
+                new Vector3(Position + Origin, 0),
+                TextureAtlas.Bullet.Height / 2);
 
-                var wallBound = new BoundingBox(new Vector3(wallPosition, 0),
-                    new Vector3(wallPosition + TextureAtlas.Wall.GetDimensions(), 0));
-                
-                if (bulletBound.Intersects(wallBound)) {
-                    if (wallBound.Contains(bulletBound) == ContainmentType.Contains) {
+            // Ricochet off walls
+            foreach (var wall in walls) {
+                ContainmentType containment = wall.Bound.Contains(bulletBound);
+                if (containment != ContainmentType.Disjoint) { // If we're on the border of/inside the wall...
+                    if (wall.Bound.Contains(bulletBound) == ContainmentType.Contains) {
                         // If the bullet is already WITHIN the wall, just remove it. This
                         // drastically decreases ricochet chances due to the way we handle
                         // collisions, but prevents SHOOTING THROUGH WALLS, which is nice.
@@ -60,20 +57,20 @@ namespace GunsBullets {
                         return; // Let's look no more at anything else below.
                     }
 
-                    var wallCenter = Vector3.Lerp(wallBound.Min, wallBound.Max, 0.5f);
-                    double wy = (bulletBound.Radius + TextureAtlas.Wall.Height / 2) * (bulletBound.Center.Y - wallCenter.Y);
-                    double hx = (bulletBound.Radius + TextureAtlas.Wall.Width / 2) * (bulletBound.Center.X - wallCenter.X);
-
+                    // We're on the wall border:
+                    double wy = (bulletBound.Radius + wall.Size.Y / 2) * (bulletBound.Center.Y - wall.Center.Y);
+                    double hx = (bulletBound.Radius + wall.Size.X / 2) * (bulletBound.Center.X - wall.Center.X);
+                    
                     if (wy > hx) {
                         if (wy > -hx && Speed.Y < 0)
-                            RicochetOrDestruction(false, (int)wallPosition.Y + TextureAtlas.Wall.Height + (int)TextureAtlas.Bullet.Height / 2);
+                            RicochetOrDestruction(false, (int)(wall.Position.Y + wall.Size.Y + TextureAtlas.Bullet.Height / 2));
                         else if (wy <= -hx && Speed.X > 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X - (int)TextureAtlas.Bullet.Width / 2);
+                            RicochetOrDestruction(true, (int)wall.Position.X - (TextureAtlas.Bullet.Width / 2));
                     } else {
                         if (wy > -hx && Speed.X < 0)
-                            RicochetOrDestruction(true, (int)wallPosition.X + TextureAtlas.Wall.Width + (int)TextureAtlas.Bullet.Width / 2);
+                            RicochetOrDestruction(true, (int)(wall.Position.X + wall.Size.X + TextureAtlas.Bullet.Width / 2));
                         else if (wy <= -hx && Speed.Y > 0) {
-                            RicochetOrDestruction(false, (int)wallPosition.Y - (int)TextureAtlas.Bullet.Height / 2);
+                            RicochetOrDestruction(false, (int)wall.Position.Y - (TextureAtlas.Bullet.Height / 2));
                         }
                     }
 
@@ -87,11 +84,10 @@ namespace GunsBullets {
 
             if (Position.X < 0) RicochetOrDestruction(true, 0);
             else if (Position.X > maxX) RicochetOrDestruction(true, maxX);
-
-            PreviousPosition = Position;
         }
 
         public void DrawBullet(ref SpriteBatch spriteBatch) {
+            if (DestroyMe) return;
             spriteBatch.Draw(TextureAtlas.Bullet, Position - Origin, Color.White);
         }
 
