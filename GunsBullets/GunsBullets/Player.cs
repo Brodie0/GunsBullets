@@ -9,47 +9,51 @@ using Microsoft.Xna.Framework.Content;
 namespace GunsBullets {
     [Serializable]
     class Player {
-        public readonly string Nickname;
-        public readonly float Radius;
-        public int Ammo;
-        public int Deaths;
-
         public int PlayerID;
+        public readonly string Nickname;
+        public int Deaths;
+        public int Ammo;
+        
         public Texture2D PlayerTexture { get { return TextureAtlas.Player[PlayerID]; } }
-        public List<Bullet> MyBullets;
-
+        public readonly float Radius;
+        
         public readonly Vector2 Origin;
         public float Rotation;
         public Vector2 Position;
+
+        private Vector2 spawnPosition;
+        public List<Bullet> MyBullets;
 
         [NonSerialized] private bool _continuousFire;
         public bool ContinuousFire => _continuousFire;
 
         [NonSerialized] private bool _singleShot;
         public bool SingleShot => _singleShot;
-        
-        public void DecreaseAmmo() { Ammo--; }
 
-        public Player(ContentManager content, string nick) {
+        public Player(ContentManager content, string nick, Map map) {
             PlayerID = 0;
             Nickname = nick;
             MyBullets = new List<Bullet>();
             Origin = new Vector2(PlayerTexture.Width / 2.0f, PlayerTexture.Height / 2.0f);
             Radius = (PlayerTexture.Width / 2.0f + PlayerTexture.Height / 2.0f) / 2.0f;
-            Position = Vector2.One + Origin;
             _continuousFire = false;
             _singleShot = false;
             Ammo = Config.MaxAmmoAmount;
             Deaths = 0;
+
+            var rng = new Random();
+            var spawnID = rng.Next(map.SpawnPositions.Count);
+            spawnPosition = map.SpawnPositions[spawnID];
+            Position = Vector2.One + Origin + spawnPosition;
         }
         
-        public void UpdatePlayer(ref GraphicsDeviceManager graphics, GameInput input, ref Map map, ref List<Bullet> bullets, IEnumerable<Wall> walls) {
+        public void UpdatePlayer(ref GraphicsDeviceManager graphics, GameInput input, Map map, List<Bullet> bullets) {
             Vector2 PositionDelta = input.MovementDirection * Config.PlayerMaxSpeed;
             
             if (PositionDelta != Vector2.Zero) {
                 // Collision: Walls
                 var playerBound = new BoundingSphere(new Vector3(Position + PositionDelta, 0), Radius);
-                foreach (var wall in walls) {
+                foreach (var wall in map.Walls) {
                     if (playerBound.Contains(wall.Bound) != ContainmentType.Disjoint) {
                         bool ZeroX = false, ZeroY = false;
                         if (PositionDelta.X != 0) {
@@ -132,8 +136,9 @@ namespace GunsBullets {
             OSD.LogEvent(Nickname + " died!", 5.0);
             AudioAtlas.DeathScream.Play();
             Deaths++;
-            Position = Vector2.Zero + Origin;
             Ammo = Config.MaxAmmoAmount;
+
+            Position = Vector2.One + Origin + spawnPosition;
         }
 
         public override string ToString() {

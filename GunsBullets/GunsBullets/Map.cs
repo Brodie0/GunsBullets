@@ -25,6 +25,7 @@ namespace GunsBullets {
     }
 
     class Map {
+        public List<Vector2> SpawnPositions;
         public List<Vector2> AmmoPositions;
         public List<Wall> Walls;
 
@@ -34,6 +35,7 @@ namespace GunsBullets {
         public Map(ContentManager content) {
             Walls = new List<Wall>();
             AmmoPositions = new List<Vector2>();
+            SpawnPositions = new List<Vector2>();
 
             // Load our map:
             string line = "# Lines starting with the # symbol will be ignored!";
@@ -44,6 +46,8 @@ namespace GunsBullets {
                 Width = Int32.Parse(header[0]);
                 Height = Int32.Parse(header[1]);
 
+                int UnitWidth = TextureAtlas.Wall.Width, UnitHeight = TextureAtlas.Wall.Height;
+
                 for (int y = 0; y < Height; y++) {
                     do { line = sr.ReadLine(); } while (string.IsNullOrWhiteSpace(line) || line[0] == '#');
                     string[] mapObjects = line.Split(' ');
@@ -53,13 +57,16 @@ namespace GunsBullets {
                         switch (thing) {
                         case 1:
                             Walls.Add(new Wall(
-                                x * TextureAtlas.Wall.Width,
-                                y * TextureAtlas.Wall.Height,
+                                x * UnitWidth,
+                                y * UnitHeight,
                                 TextureAtlas.Wall.Width,
                                 TextureAtlas.Wall.Height));
                             break;
                         case 2:
-                            AmmoPositions.Add(new Vector2(x * TextureAtlas.Ammo.Width, y * TextureAtlas.Ammo.Height));
+                            AmmoPositions.Add(new Vector2(x * UnitWidth, y * UnitHeight));
+                            break;
+                        case 9:
+                            SpawnPositions.Add(new Vector2(x * UnitWidth, y * UnitHeight));
                             break;
                         }
                     }

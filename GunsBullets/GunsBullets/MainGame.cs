@@ -67,15 +67,16 @@ namespace GunsBullets {
             TextureAtlas.Initialize(Content, gdm.GraphicsDevice);
             AudioAtlas.Initialize(Content);
 
+            map = new Map(Content);
+            input = new GameInput(gdm);
+            
             spriteBatch = new SpriteBatch(GraphicsDevice);
-            players.Add(new Player(Content, Config.Nickname));
+            players.Add(new Player(Content, Config.Nickname, map));
             OSD.playerToTrack = players[0];
 
             _cameraPosition = players[0].Position;
             m_halfViewSize = new Vector2(gdm.GraphicsDevice.Viewport.Width * 0.5f, gdm.GraphicsDevice.Viewport.Height * 0.5f);
             UpdateViewMatrix();
-            map = new Map(Content);
-            input = new GameInput(gdm);
         }
 
         /// <summary>
@@ -110,7 +111,7 @@ namespace GunsBullets {
             }
 
             Player localPlayer = players.First();
-            localPlayer.UpdatePlayer(ref gdm, input, ref map, ref allBullets, map.Walls);
+            localPlayer.UpdatePlayer(ref gdm, input, map, allBullets);
             
             _cameraPosition = localPlayer.Position;
             UpdateViewMatrix();
@@ -120,13 +121,13 @@ namespace GunsBullets {
                 if (localPlayer.ContinuousFire) { //shooting
                     if (_fireIter == Config.FireRate) {
                         Bullet bullet = new Bullet(ref gdm, localPlayer, input);
-                        localPlayer.DecreaseAmmo();
+                        localPlayer.Ammo--;
                         localPlayer.MyBullets.Add(bullet);
                         _fireIter = 0;
                     } else _fireIter++;
                 } else if (localPlayer.SingleShot) {
                     Bullet bullet = new Bullet(ref gdm, localPlayer, input);
-                    localPlayer.DecreaseAmmo();
+                    localPlayer.Ammo--;
                     localPlayer.MyBullets.Add(bullet);
                 } else if (!localPlayer.ContinuousFire) {
                     _fireIter = 0;
