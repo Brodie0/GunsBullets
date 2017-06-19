@@ -6,7 +6,6 @@ using System.Collections.Generic;
 
 namespace GunsBullets {
     sealed class Guest {
-        public static readonly Guest instance = new Guest();
         TcpClient clientSocket;
         IPEndPoint serverEndPoint;
         private Int32 playerID;
@@ -15,7 +14,7 @@ namespace GunsBullets {
 
         internal Player PlayerToSend { get; set; }
 
-        private Guest() {
+        public Guest(ref List<Player> allPlayers) {
             // Create a TcpClient.
             // Note, for this client to work you need to have a TcpServer 
             // connected to the same address as specified by the server, port
@@ -24,27 +23,20 @@ namespace GunsBullets {
             clientSocket = new TcpClient();
             playerID = -1;
             _otherPlayers = new List<Player>(Config.MaxNumberOfGuests);
-        }
 
-        public void Start(List<Player> allPlayers) {
             _allPlayers = allPlayers;
             PlayerToSend = allPlayers[0];
         }
-
-        public void Stop() {
-            clientSocket.Close();
-            Console.WriteLine("Guest finished working");
-        }
-
+        
         public void StartCommunicationThread() {
             try {
                 Byte[] data;
+                clientSocket.Connect(serverEndPoint);
+
                 // Get a client stream for reading and writing.
-                using (NetworkStream stream = LookForHost()) {
+                using (NetworkStream stream = clientSocket.GetStream()) {
                     // Send the message to the connected TcpServer.
-                    lock (PlayerToSend) {
-                        data = Serialization.ObjectToByteArray(PlayerToSend);
-                    }               
+                    lock (PlayerToSend) data = Serialization.ObjectToByteArray(PlayerToSend);
                     stream.Write(data, 0, data.Length);
 
                     //get unique key from host
@@ -55,39 +47,26 @@ namespace GunsBullets {
 
                     while (true) {
                         PlayerToSend.PlayerID = playerID;
-                        data = Serialization.ObjectToByteArray(PlayerToSend);
+                        lock (PlayerToSend) data = Serialization.ObjectToByteArray(PlayerToSend);
                         stream.Write(data, 0, data.Length);
+
+                        if (!clientSocket.Connected) break;
 
                         GetListOfOtherPlayerFromHost(stream);
                         Thread.Sleep(Config.SendingPackagesDelay);
+
+                        if (!clientSocket.Connected) break;
                     }
                 }
+            } catch (ArgumentNullException e) {
+                Console.WriteLine($"ArgumentNullException: {e}");
+            } catch (SocketException e) {
+                Console.WriteLine($"SocketException: {e}");
             }
-            catch (ArgumentNullException e) {
-                Console.WriteLine("ArgumentNullException: {0}", e);
-            }
-            catch (SocketException e) {
-                Console.WriteLine("SocketException: {0}", e);
-            }
-        }
-
-        private NetworkStream LookForHost() {
-            NetworkStream stream = null;
-            try {
-                clientSocket.Connect(serverEndPoint);
-                stream = clientSocket.GetStream();
-            }
-            catch (SocketException) {
-                Console.WriteLine($"NIE ZNALEZIONO HOSTA POD ADRESEM: {serverEndPoint}");
-            }
-            return stream;
         }
 
         private void GetListOfOtherPlayerFromHost(NetworkStream stream) {
             _otherPlayers = Serialization.ReadListOfPlayersData(stream);
-            Console.WriteLine("# LISTA GRACZY:");
-            _otherPlayers.ForEach(Console.WriteLine);
-
             AddOrRefreshPlayers();
         }
 

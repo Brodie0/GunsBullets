@@ -19,7 +19,9 @@ namespace GunsBullets {
         private int _fireIter;
         private Map map;
         private GameInput input;
-        private bool ifPressReload;
+
+        private Host host;
+        private Guest guest;
 
         public MainGame() {
             gdm = new GraphicsDeviceManager(this);
@@ -46,11 +48,11 @@ namespace GunsBullets {
             }
 
             if (Config.HostGame) {
-                Host.instance.Start(ref players);
-                Host.instance.AddNewListeningThread(Config.MaxNumberOfGuests);
+                host = new Host(ref players);
+                host.AddListeners();
             } else { // Guest!
-                Guest.instance.Start(players);
-                Task.Factory.StartNew(() => Guest.instance.StartCommunicationThread());
+                guest = new Guest(ref players);
+                Task.Factory.StartNew(() => guest.StartCommunicationThread());
             }
         }
 
@@ -100,8 +102,8 @@ namespace GunsBullets {
             OSD.Update(gameTime);
 
             if (!Config.HostGame) {
-                lock (Guest.instance.PlayerToSend) {
-                    Guest.instance.PlayerToSend = players.First();
+                lock (guest.PlayerToSend) {
+                    guest.PlayerToSend = players.First();
                 }
             }
 
@@ -159,7 +161,7 @@ namespace GunsBullets {
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, viewMatrix); {
                 map.DrawMap(ref spriteBatch);
                 lock (players) foreach (var player in players) player.DrawPlayer(ref spriteBatch);
-                lock (allBullets) foreach (var bullet in allBullets) bullet.DrawBullet(ref spriteBatch);
+                lock (allBullets) foreach (var bullet in allBullets) if (bullet != null) bullet.DrawBullet(ref spriteBatch);
                 OSD.Draw(ref gdm, ref spriteBatch, _cameraPosition - m_halfViewSize);
             } spriteBatch.End();
             base.Draw(gameTime);

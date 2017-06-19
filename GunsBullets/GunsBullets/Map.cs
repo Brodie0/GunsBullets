@@ -11,6 +11,7 @@ namespace GunsBullets {
         public Vector2 Position, Size, Center;
         public BoundingBox Bound;
         public bool ClippedInto = false;
+        public bool Drawable = true;
 
         public Wall(Vector2 pos, Vector2 size) {
             Position = pos;
@@ -80,20 +81,23 @@ namespace GunsBullets {
                 //   +----10----+
                 //    Bottom (4)
 
-                Walls.Add(new Wall(-100.0f, -100.0f,
-                    100.0f, 200.0f + (Height * TextureAtlas.Wall.Height))); // 1
-                Walls.Add(new Wall(TextureAtlas.Wall.Width * Width, -100.0f,
-                    100.0f, 200.0f + (Height * TextureAtlas.Wall.Height))); // 2
-                Walls.Add(new Wall(-100.0f, -100.0f,
-                    200.0f + (Width * TextureAtlas.Wall.Width), 100.0f)); // 3
-                Walls.Add(new Wall(-100.0f, (Height * TextureAtlas.Wall.Height),
-                    200.0f + (Width * TextureAtlas.Wall.Width), 100.0f)); // 4
+                Wall[] bounds = {
+                    new Wall(-100.0f, -100.0f, 100.0f, 200.0f + (Height * TextureAtlas.Wall.Height)),
+                    new Wall(TextureAtlas.Wall.Width * Width, -100.0f, 100.0f, 200.0f + (Height * TextureAtlas.Wall.Height)),
+                    new Wall(-100.0f, -100.0f, 200.0f + (Width * TextureAtlas.Wall.Width), 100.0f),
+                    new Wall(-100.0f, (Height * TextureAtlas.Wall.Height), 200.0f + (Width * TextureAtlas.Wall.Width), 100.0f)
+                };
+
+                foreach (Wall bound in bounds) {
+                    bound.Drawable = false;
+                    Walls.Add(bound);
+                }
             }
         }
 
         public void DrawMap(ref SpriteBatch spriteBatch) {
             spriteBatch.Draw(TextureAtlas.Map, Vector2.Zero, Color.White);
-            foreach (var wall in Walls) spriteBatch.Draw(TextureAtlas.Wall, wall.Position, Color.White);
+            foreach (var wall in Walls) if (wall.Drawable) spriteBatch.Draw(TextureAtlas.Wall, wall.Position, Color.White);
             foreach (var ammoPos in AmmoPositions) spriteBatch.Draw(TextureAtlas.Ammo, ammoPos, Color.White);
 
             if (Config.DebugMode) {
